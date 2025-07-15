@@ -1,0 +1,7 @@
+tkinter
+requests>=2.25.1
+cryptography
+pyinstaller
+pillow
+Flask
+flask-cors
