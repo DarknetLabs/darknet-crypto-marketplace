@@ -98,6 +98,7 @@ class TerminalCryptoMarketplace:
         print(f"{Colors.YELLOW}[5]{Colors.END} Chat Rooms")
         print(f"{Colors.YELLOW}[6]{Colors.END} Transaction History")
         print(f"{Colors.YELLOW}[7]{Colors.END} Settings")
+        print(f"{Colors.YELLOW}[8]{Colors.END} Uniswap Trading")
         print(f"{Colors.YELLOW}[0]{Colors.END} Exit")
         print(f"\n{Colors.CYAN}Balance: ${self.user_balance:,.2f}{Colors.END}")
 
@@ -202,6 +203,23 @@ class TerminalCryptoMarketplace:
     def buy_crypto(self):
         """Buy cryptocurrency"""
         print(f"\n{Colors.YELLOW}BUY CRYPTOCURRENCY{Colors.END}")
+        print(f"{Colors.WHITE}Choose buying method:{Colors.END}")
+        print(f"{Colors.GREEN}[1]{Colors.END} Buy from predefined list")
+        print(f"{Colors.GREEN}[2]{Colors.END} Buy any token by contract address")
+        
+        choice = self.get_user_input("Enter choice: ")
+        
+        if choice == '1':
+            self.buy_predefined_crypto()
+        elif choice == '2':
+            self.buy_any_token()
+        else:
+            print(f"{Colors.RED}Invalid choice{Colors.END}")
+            input("Press Enter to continue...")
+
+    def buy_predefined_crypto(self):
+        """Buy from predefined cryptocurrency list"""
+        print(f"\n{Colors.YELLOW}BUY FROM PREDEFINED LIST{Colors.END}")
         symbol = self.get_user_input("Enter symbol (e.g., BTC, ETH): ").upper()
         
         if symbol not in self.all_trading_pairs:
@@ -254,9 +272,192 @@ class TerminalCryptoMarketplace:
         
         input("Press Enter to continue...")
 
+    def buy_any_token(self):
+        """Buy any token by contract address with tax support"""
+        print(f"\n{Colors.YELLOW}BUY ANY TOKEN BY CONTRACT ADDRESS{Colors.END}")
+        print(f"{Colors.WHITE}This supports tokens with taxes and fees{Colors.END}")
+        
+        # Get contract address
+        contract_address = self.get_user_input("Enter token contract address: ").strip()
+        if not contract_address or not contract_address.startswith('0x'):
+            print(f"{Colors.RED}Invalid contract address. Must start with 0x{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get ETH amount
+        try:
+            eth_amount = float(self.get_user_input("Enter ETH amount to spend: "))
+            if eth_amount <= 0:
+                print(f"{Colors.RED}Amount must be positive{Colors.END}")
+                input("Press Enter to continue...")
+                return
+        except ValueError:
+            print(f"{Colors.RED}Invalid amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Check balance
+        eth_price = self.live_market.get_price('ETH') or 3200
+        total_cost_usd = eth_amount * eth_price
+        
+        if total_cost_usd > self.user_balance:
+            print(f"{Colors.RED}Insufficient balance. Need ${total_cost_usd:,.2f}, have ${self.user_balance:,.2f}{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get token info (simulated)
+        token_info = self.get_token_info(contract_address)
+        if not token_info:
+            print(f"{Colors.RED}Could not fetch token information{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Calculate swap with taxes
+        swap_result = self.calculate_swap_with_taxes(contract_address, eth_amount, token_info)
+        
+        if not swap_result:
+            print(f"{Colors.RED}Swap calculation failed{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Show swap preview
+        print(f"\n{Colors.CYAN}SWAP PREVIEW:{Colors.END}")
+        print(f"  Token: {token_info['symbol']} ({token_info['name']})")
+        print(f"  Contract: {contract_address}")
+        print(f"  ETH Spent: {eth_amount:.6f} ETH (${total_cost_usd:,.2f})")
+        print(f"  Tokens Received: {swap_result['tokens_received']:.6f} {token_info['symbol']}")
+        print(f"  Buy Tax: {swap_result['buy_tax']:.1f}%")
+        print(f"  Price Impact: {swap_result['price_impact']:.2f}%")
+        print(f"  Gas Estimate: {swap_result['gas_estimate']:,} GWEI")
+        print(f"  Total Fees: ${swap_result['total_fees']:.2f}")
+        
+        # Confirm swap
+        confirm = self.get_user_input("\nExecute swap? (y/N): ").lower()
+        if confirm != 'y':
+            print(f"{Colors.YELLOW}Swap cancelled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute swap
+        success = self.execute_token_swap(contract_address, eth_amount, swap_result, token_info)
+        
+        if success:
+            print(f"{Colors.GREEN}Swap executed successfully!{Colors.END}")
+            print(f"  Received {swap_result['tokens_received']:.6f} {token_info['symbol']}")
+            print(f"  Transaction hash: 0x{random.randint(1000000000000000000000000000000000000000, 9999999999999999999999999999999999999999):040x}")
+        else:
+            print(f"{Colors.RED}Swap failed{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def get_token_info(self, contract_address):
+        """Get token information from contract address"""
+        # Simulated token info - in real implementation, this would query the blockchain
+        token_symbols = ['PEPE', 'SHIB', 'DOGE', 'BONK', 'FLOKI', 'MOON', 'SAFE', 'RUG', 'PUMP', 'MOONSHOT']
+        token_names = ['Pepe', 'Shiba Inu', 'Dogecoin', 'Bonk', 'Floki', 'Moon', 'SafeMoon', 'RugPull', 'PumpToken', 'MoonShot']
+        
+        # Generate deterministic but random token info based on address
+        address_hash = hash(contract_address) % len(token_symbols)
+        
+        return {
+            'symbol': token_symbols[address_hash],
+            'name': token_names[address_hash],
+            'decimals': 18,
+            'contract_address': contract_address
+        }
+
+    def calculate_swap_with_taxes(self, contract_address, eth_amount, token_info):
+        """Calculate swap with taxes and fees"""
+        # Simulate realistic token taxes and fees
+        eth_price = self.live_market.get_price('ETH') or 3200
+        
+        # Random tax rates (realistic for meme coins)
+        buy_tax = random.uniform(5, 25)  # 5-25% buy tax
+        sell_tax = random.uniform(5, 25)  # 5-25% sell tax
+        
+        # Calculate tokens received (simplified)
+        # In real implementation, this would use Uniswap's getAmountsOut
+        base_tokens = eth_amount * 1000000  # Rough estimate
+        tokens_after_tax = base_tokens * (1 - buy_tax / 100)
+        
+        # Calculate fees
+        uniswap_fee = eth_amount * eth_price * 0.003  # 0.3% Uniswap fee
+        gas_fee = random.randint(50, 200)  # $50-200 gas
+        total_fees = uniswap_fee + gas_fee
+        
+        # Price impact (higher for smaller pools)
+        price_impact = random.uniform(0.5, 5.0)
+        
+        # Gas estimate
+        gas_estimate = random.randint(200000, 500000)
+        
+        return {
+            'tokens_received': tokens_after_tax,
+            'buy_tax': buy_tax,
+            'sell_tax': sell_tax,
+            'price_impact': price_impact,
+            'gas_estimate': gas_estimate,
+            'total_fees': total_fees,
+            'uniswap_fee': uniswap_fee,
+            'gas_fee': gas_fee
+        }
+
+    def execute_token_swap(self, contract_address, eth_amount, swap_result, token_info):
+        """Execute the token swap"""
+        eth_price = self.live_market.get_price('ETH') or 3200
+        total_cost_usd = eth_amount * eth_price
+        
+        # Deduct from balance
+        self.user_balance -= total_cost_usd
+        
+        # Add tokens to portfolio
+        symbol = token_info['symbol']
+        self.user_portfolio[symbol] = self.user_portfolio.get(symbol, 0) + swap_result['tokens_received']
+        
+        # Update cost basis
+        if symbol not in self.token_cost_basis:
+            self.token_cost_basis[symbol] = {'total_bought': 0, 'total_spent': 0, 'average_price': 0}
+        
+        cb = self.token_cost_basis[symbol]
+        cb['total_bought'] += swap_result['tokens_received']
+        cb['total_spent'] += total_cost_usd
+        cb['average_price'] = cb['total_spent'] / cb['total_bought']
+        
+        # Add to transaction history
+        self.transaction_history.append({
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'action': 'UNISWAP_BUY',
+            'symbol': symbol,
+            'amount': swap_result['tokens_received'],
+            'price': total_cost_usd / swap_result['tokens_received'],
+            'total': total_cost_usd,
+            'contract_address': contract_address,
+            'buy_tax': swap_result['buy_tax'],
+            'gas_fee': swap_result['gas_fee']
+        })
+        
+        return True
+
     def sell_crypto(self):
         """Sell cryptocurrency"""
         print(f"\n{Colors.YELLOW}SELL CRYPTOCURRENCY{Colors.END}")
+        print(f"{Colors.WHITE}Choose selling method:{Colors.END}")
+        print(f"{Colors.GREEN}[1]{Colors.END} Sell from predefined list")
+        print(f"{Colors.GREEN}[2]{Colors.END} Sell any token by contract address")
+        
+        choice = self.get_user_input("Enter choice: ")
+        
+        if choice == '1':
+            self.sell_predefined_crypto()
+        elif choice == '2':
+            self.sell_any_token()
+        else:
+            print(f"{Colors.RED}Invalid choice{Colors.END}")
+            input("Press Enter to continue...")
+
+    def sell_predefined_crypto(self):
+        """Sell from predefined cryptocurrency list"""
+        print(f"\n{Colors.YELLOW}SELL FROM PREDEFINED LIST{Colors.END}")
         
         if not self.user_portfolio:
             print(f"{Colors.RED}No holdings to sell{Colors.END}")
@@ -305,6 +506,160 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.RED}Invalid amount{Colors.END}")
         
         input("Press Enter to continue...")
+
+    def sell_any_token(self):
+        """Sell any token by contract address with tax support"""
+        print(f"\n{Colors.YELLOW}SELL ANY TOKEN BY CONTRACT ADDRESS{Colors.END}")
+        print(f"{Colors.WHITE}This supports tokens with taxes and fees{Colors.END}")
+        
+        # Get contract address
+        contract_address = self.get_user_input("Enter token contract address: ").strip()
+        if not contract_address or not contract_address.startswith('0x'):
+            print(f"{Colors.RED}Invalid contract address. Must start with 0x{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get token info
+        token_info = self.get_token_info(contract_address)
+        if not token_info:
+            print(f"{Colors.RED}Could not fetch token information{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        symbol = token_info['symbol']
+        
+        # Check if user has this token
+        if symbol not in self.user_portfolio or self.user_portfolio[symbol] <= 0:
+            print(f"{Colors.RED}No holdings of {symbol}{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get amount to sell
+        try:
+            token_amount = float(self.get_user_input(f"Enter amount to sell (max: {self.user_portfolio[symbol]:.6f}): "))
+            if token_amount <= 0 or token_amount > self.user_portfolio[symbol]:
+                print(f"{Colors.RED}Invalid amount{Colors.END}")
+                input("Press Enter to continue...")
+                return
+        except ValueError:
+            print(f"{Colors.RED}Invalid amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Calculate sell with taxes
+        sell_result = self.calculate_sell_with_taxes(contract_address, token_amount, token_info)
+        
+        if not sell_result:
+            print(f"{Colors.RED}Sell calculation failed{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Show sell preview
+        print(f"\n{Colors.CYAN}SELL PREVIEW:{Colors.END}")
+        print(f"  Token: {token_info['symbol']} ({token_info['name']})")
+        print(f"  Contract: {contract_address}")
+        print(f"  Tokens Sold: {token_amount:.6f} {token_info['symbol']}")
+        print(f"  ETH Received: {sell_result['eth_received']:.6f} ETH (${sell_result['eth_value']:.2f})")
+        print(f"  Sell Tax: {sell_result['sell_tax']:.1f}%")
+        print(f"  Price Impact: {sell_result['price_impact']:.2f}%")
+        print(f"  Gas Estimate: {sell_result['gas_estimate']:,} GWEI")
+        print(f"  Total Fees: ${sell_result['total_fees']:.2f}")
+        
+        # Confirm sell
+        confirm = self.get_user_input("\nExecute sell? (y/N): ").lower()
+        if confirm != 'y':
+            print(f"{Colors.YELLOW}Sell cancelled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute sell
+        success = self.execute_token_sell(contract_address, token_amount, sell_result, token_info)
+        
+        if success:
+            print(f"{Colors.GREEN}Sell executed successfully!{Colors.END}")
+            print(f"  Received {sell_result['eth_received']:.6f} ETH (${sell_result['eth_value']:.2f})")
+            print(f"  Transaction hash: 0x{random.randint(1000000000000000000000000000000000000000, 9999999999999999999999999999999999999999):040x}")
+        else:
+            print(f"{Colors.RED}Sell failed{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def calculate_sell_with_taxes(self, contract_address, token_amount, token_info):
+        """Calculate sell with taxes and fees"""
+        # Simulate realistic token taxes and fees
+        eth_price = self.live_market.get_price('ETH') or 3200
+        
+        # Random tax rates (realistic for meme coins)
+        sell_tax = random.uniform(5, 25)  # 5-25% sell tax
+        
+        # Calculate ETH received (simplified)
+        # In real implementation, this would use Uniswap's getAmountsOut
+        base_eth = token_amount * 0.001  # Rough estimate
+        eth_after_tax = base_eth * (1 - sell_tax / 100)
+        
+        # Calculate fees
+        uniswap_fee = eth_after_tax * eth_price * 0.003  # 0.3% Uniswap fee
+        gas_fee = random.randint(50, 200)  # $50-200 gas
+        total_fees = uniswap_fee + gas_fee
+        
+        # Price impact (higher for smaller pools)
+        price_impact = random.uniform(0.5, 5.0)
+        
+        # Gas estimate
+        gas_estimate = random.randint(200000, 500000)
+        
+        return {
+            'eth_received': eth_after_tax,
+            'eth_value': eth_after_tax * eth_price,
+            'sell_tax': sell_tax,
+            'price_impact': price_impact,
+            'gas_estimate': gas_estimate,
+            'total_fees': total_fees,
+            'uniswap_fee': uniswap_fee,
+            'gas_fee': gas_fee
+        }
+
+    def execute_token_sell(self, contract_address, token_amount, sell_result, token_info):
+        """Execute the token sell"""
+        symbol = token_info['symbol']
+        
+        # Remove tokens from portfolio
+        self.user_portfolio[symbol] -= token_amount
+        if self.user_portfolio[symbol] <= 0:
+            del self.user_portfolio[symbol]
+        
+        # Add ETH to balance
+        self.user_balance += sell_result['eth_value']
+        
+        # Update cost basis
+        if symbol in self.token_cost_basis:
+            cost_basis = self.token_cost_basis[symbol]
+            # Reduce cost basis proportionally
+            reduction_ratio = token_amount / cost_basis['total_bought']
+            cost_basis['total_bought'] -= token_amount
+            cost_basis['total_spent'] -= (cost_basis['total_spent'] * reduction_ratio)
+            
+            # If we sold everything, reset cost basis
+            if cost_basis['total_bought'] <= 0:
+                del self.token_cost_basis[symbol]
+            else:
+                # Recalculate average price
+                cost_basis['average_price'] = cost_basis['total_spent'] / cost_basis['total_bought']
+        
+        # Add to transaction history
+        self.transaction_history.append({
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'action': 'UNISWAP_SELL',
+            'symbol': symbol,
+            'amount': token_amount,
+            'price': sell_result['eth_value'] / token_amount,
+            'total': sell_result['eth_value'],
+            'contract_address': contract_address,
+            'sell_tax': sell_result['sell_tax'],
+            'gas_fee': sell_result['gas_fee']
+        })
+        
+        return True
 
     def view_all_tokens(self):
         """View all available tokens"""
@@ -780,6 +1135,8 @@ class TerminalCryptoMarketplace:
                     self.history_screen()
                 elif choice == '7':
                     self.settings_screen()
+                elif choice == '8':
+                    self.uniswap_screen()
                 else:
                     print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
                     time.sleep(1)
@@ -788,6 +1145,396 @@ class TerminalCryptoMarketplace:
             print(f"\n\n{Colors.GREEN}Application terminated by user.{Colors.END}")
         finally:
             self.running = False
+
+    def uniswap_screen(self):
+        """Display Uniswap trading interface"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              UNISWAP TRADING                                 ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.WHITE}Available Balance: ${self.user_balance:,.2f}{Colors.END}")
+            
+            # Uniswap V3 pools with real-time data
+            pools = self.get_uniswap_pools()
+            
+            print(f"\n{Colors.YELLOW}ACTIVE LIQUIDITY POOLS:{Colors.END}")
+            for i, pool in enumerate(pools[:10], 1):
+                token0, token1 = pool['token0'], pool['token1']
+                liquidity = pool['liquidity']
+                volume_24h = pool['volume24h']
+                fee_tier = pool['feeTier']
+                
+                print(f"  {i:2d}. {Colors.GREEN}{token0}/{token1}{Colors.END} | "
+                      f"Liquidity: ${liquidity:,.0f} | "
+                      f"24h Vol: ${volume_24h:,.0f} | "
+                      f"Fee: {fee_tier}%")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Swap Tokens | {Colors.GREEN}[2]{Colors.END} Add Liquidity | "
+                  f"{Colors.GREEN}[3]{Colors.END} Remove Liquidity | {Colors.GREEN}[4]{Colors.END} Pool Analytics | "
+                  f"{Colors.GREEN}[0]{Colors.END} Back")
+            
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.uniswap_swap()
+            elif choice == '2':
+                self.uniswap_add_liquidity()
+            elif choice == '3':
+                self.uniswap_remove_liquidity()
+            elif choice == '4':
+                self.uniswap_analytics()
+
+    def get_uniswap_pools(self):
+        """Get Uniswap V3 pool data"""
+        # Simulated Uniswap V3 pools with realistic data
+        pools = [
+            {
+                'token0': 'ETH', 'token1': 'USDC', 'liquidity': 1250000000,
+                'volume24h': 45000000, 'feeTier': 0.05, 'tickSpacing': 10
+            },
+            {
+                'token0': 'ETH', 'token1': 'USDT', 'liquidity': 980000000,
+                'volume24h': 38000000, 'feeTier': 0.05, 'tickSpacing': 10
+            },
+            {
+                'token0': 'USDC', 'token1': 'USDT', 'liquidity': 250000000,
+                'volume24h': 15000000, 'feeTier': 0.01, 'tickSpacing': 1
+            },
+            {
+                'token0': 'ETH', 'token1': 'WBTC', 'liquidity': 320000000,
+                'volume24h': 12000000, 'feeTier': 0.30, 'tickSpacing': 60
+            },
+            {
+                'token0': 'USDC', 'token1': 'UNI', 'liquidity': 180000000,
+                'volume24h': 8500000, 'feeTier': 0.30, 'tickSpacing': 60
+            },
+            {
+                'token0': 'ETH', 'token1': 'LINK', 'liquidity': 95000000,
+                'volume24h': 4200000, 'feeTier': 0.30, 'tickSpacing': 60
+            },
+            {
+                'token0': 'USDC', 'token1': 'AAVE', 'liquidity': 75000000,
+                'volume24h': 3800000, 'feeTier': 0.30, 'tickSpacing': 60
+            },
+            {
+                'token0': 'ETH', 'token1': 'MATIC', 'liquidity': 68000000,
+                'volume24h': 3200000, 'feeTier': 0.30, 'tickSpacing': 60
+            },
+            {
+                'token0': 'USDC', 'token1': 'CRV', 'liquidity': 45000000,
+                'volume24h': 2100000, 'feeTier': 1.00, 'tickSpacing': 200
+            },
+            {
+                'token0': 'ETH', 'token1': 'SNX', 'liquidity': 42000000,
+                'volume24h': 1800000, 'feeTier': 1.00, 'tickSpacing': 200
+            }
+        ]
+        
+        # Add some randomness to simulate live data
+        for pool in pools:
+            pool['liquidity'] *= (0.95 + random.random() * 0.1)
+            pool['volume24h'] *= (0.9 + random.random() * 0.2)
+        
+        return pools
+
+    def uniswap_swap(self):
+        """Execute Uniswap token swap"""
+        print(f"\n{Colors.YELLOW}UNISWAP SWAP{Colors.END}")
+        
+        # Get token pairs
+        token0 = self.get_user_input("Enter token to swap FROM (e.g., ETH): ").upper()
+        token1 = self.get_user_input("Enter token to swap TO (e.g., USDC): ").upper()
+        
+        if not token0 or not token1:
+            print(f"{Colors.RED}Invalid token pair{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get amount
+        try:
+            amount = float(self.get_user_input(f"Enter amount of {token0} to swap: "))
+            if amount <= 0:
+                print(f"{Colors.RED}Amount must be positive{Colors.END}")
+                input("Press Enter to continue...")
+                return
+        except ValueError:
+            print(f"{Colors.RED}Invalid amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Calculate swap
+        swap_result = self.calculate_uniswap_swap(token0, token1, amount)
+        
+        if swap_result:
+            output_amount = swap_result['output_amount']
+            price_impact = swap_result['price_impact']
+            fee = swap_result['fee']
+            gas_estimate = swap_result['gas_estimate']
+            
+            print(f"\n{Colors.CYAN}SWAP PREVIEW:{Colors.END}")
+            print(f"  Input: {amount:.6f} {token0}")
+            print(f"  Output: {output_amount:.6f} {token1}")
+            print(f"  Price Impact: {Colors.RED if price_impact > 1 else Colors.GREEN}{price_impact:.2f}%{Colors.END}")
+            print(f"  Fee: ${fee:.2f}")
+            print(f"  Gas Estimate: {gas_estimate:,} GWEI")
+            
+            confirm = self.get_user_input("\nExecute swap? (y/N): ").lower()
+            if confirm == 'y':
+                self.execute_uniswap_swap(token0, token1, amount, output_amount, fee)
+            else:
+                print(f"{Colors.YELLOW}Swap cancelled{Colors.END}")
+        else:
+            print(f"{Colors.RED}Swap calculation failed. Check token pair and liquidity.{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def calculate_uniswap_swap(self, token0, token1, amount):
+        """Calculate Uniswap swap output and fees"""
+        # Get current prices
+        price0 = self.live_market.get_price(token0) or self.all_trading_pairs.get(token0, 0)
+        price1 = self.live_market.get_price(token1) or self.all_trading_pairs.get(token1, 0)
+        
+        if price0 == 0 or price1 == 0:
+            return None
+        
+        # Calculate output amount (simplified Uniswap V3 formula)
+        # In real Uniswap, this would use the x*y=k formula with concentrated liquidity
+        input_value = amount * price0
+        output_amount = input_value / price1
+        
+        # Apply slippage and fees
+        fee_rate = 0.003  # 0.3% fee
+        fee = input_value * fee_rate
+        output_amount = output_amount * (1 - fee_rate)
+        
+        # Calculate price impact (simplified)
+        price_impact = random.uniform(0.1, 2.0)  # 0.1% to 2% impact
+        
+        # Gas estimate
+        gas_estimate = random.randint(150000, 300000)
+        
+        return {
+            'output_amount': output_amount,
+            'price_impact': price_impact,
+            'fee': fee,
+            'gas_estimate': gas_estimate
+        }
+
+    def execute_uniswap_swap(self, token0, token1, input_amount, output_amount, fee):
+        """Execute the Uniswap swap"""
+        total_cost = input_amount * (self.live_market.get_price(token0) or self.all_trading_pairs.get(token0, 0))
+        
+        if total_cost > self.user_balance:
+            print(f"{Colors.RED}Insufficient balance for swap{Colors.END}")
+            return
+        
+        # Execute swap
+        self.user_balance -= total_cost
+        
+        # Update portfolio
+        if token0 in self.user_portfolio:
+            self.user_portfolio[token0] -= input_amount
+            if self.user_portfolio[token0] <= 0:
+                del self.user_portfolio[token0]
+        
+        self.user_portfolio[token1] = self.user_portfolio.get(token1, 0) + output_amount
+        
+        # Record transaction
+        transaction = {
+            'type': 'UNISWAP_SWAP',
+            'from_token': token0,
+            'to_token': token1,
+            'from_amount': input_amount,
+            'to_amount': output_amount,
+            'fee': fee,
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        self.transaction_history.append(transaction)
+        
+        print(f"{Colors.GREEN}Swap executed successfully!{Colors.END}")
+        print(f"  Swapped {input_amount:.6f} {token0} for {output_amount:.6f} {token1}")
+
+    def uniswap_add_liquidity(self):
+        """Add liquidity to Uniswap pool"""
+        print(f"\n{Colors.YELLOW}ADD LIQUIDITY{Colors.END}")
+        
+        token0 = self.get_user_input("Enter first token (e.g., ETH): ").upper()
+        token1 = self.get_user_input("Enter second token (e.g., USDC): ").upper()
+        
+        if not token0 or not token1:
+            print(f"{Colors.RED}Invalid token pair{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        try:
+            amount0 = float(self.get_user_input(f"Enter amount of {token0}: "))
+            amount1 = float(self.get_user_input(f"Enter amount of {token1}: "))
+            
+            if amount0 <= 0 or amount1 <= 0:
+                print(f"{Colors.RED}Amounts must be positive{Colors.END}")
+                input("Press Enter to continue...")
+                return
+        except ValueError:
+            print(f"{Colors.RED}Invalid amounts{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Calculate liquidity position
+        price0 = self.live_market.get_price(token0) or self.all_trading_pairs.get(token0, 0)
+        price1 = self.live_market.get_price(token1) or self.all_trading_pairs.get(token1, 0)
+        
+        if price0 == 0 or price1 == 0:
+            print(f"{Colors.RED}Invalid token prices{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        value0 = amount0 * price0
+        value1 = amount1 * price1
+        total_value = value0 + value1
+        
+        if total_value > self.user_balance:
+            print(f"{Colors.RED}Insufficient balance for liquidity provision{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute liquidity provision
+        self.user_balance -= total_value
+        
+        # Generate LP token amount (simplified)
+        lp_tokens = total_value / 100  # Simplified calculation
+        
+        # Record transaction
+        transaction = {
+            'type': 'ADD_LIQUIDITY',
+            'token0': token0,
+            'token1': token1,
+            'amount0': amount0,
+            'amount1': amount1,
+            'lp_tokens': lp_tokens,
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        self.transaction_history.append(transaction)
+        
+        print(f"{Colors.GREEN}Liquidity added successfully!{Colors.END}")
+        print(f"  Added {amount0:.6f} {token0} and {amount1:.6f} {token1}")
+        print(f"  Received {lp_tokens:.6f} LP tokens")
+        
+        input("Press Enter to continue...")
+
+    def uniswap_remove_liquidity(self):
+        """Remove liquidity from Uniswap pool"""
+        print(f"\n{Colors.YELLOW}REMOVE LIQUIDITY{Colors.END}")
+        
+        # Check if user has LP positions (simplified)
+        lp_positions = [tx for tx in self.transaction_history if tx.get('type') == 'ADD_LIQUIDITY']
+        
+        if not lp_positions:
+            print(f"{Colors.RED}No liquidity positions found{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"{Colors.CYAN}Your LP Positions:{Colors.END}")
+        for i, pos in enumerate(lp_positions[-5:], 1):
+            print(f"  {i}. {pos['token0']}/{pos['token1']} - {pos['lp_tokens']:.6f} LP tokens")
+        
+        try:
+            choice = int(self.get_user_input("Select position to remove (1-5): "))
+            if 1 <= choice <= len(lp_positions):
+                position = lp_positions[choice - 1]
+                
+                lp_amount = float(self.get_user_input(f"Enter LP tokens to remove (max {position['lp_tokens']:.6f}): "))
+                
+                if lp_amount > position['lp_tokens']:
+                    print(f"{Colors.RED}Amount exceeds available LP tokens{Colors.END}")
+                    input("Press Enter to continue...")
+                    return
+                
+                # Calculate returns (simplified)
+                ratio = lp_amount / position['lp_tokens']
+                return0 = position['amount0'] * ratio
+                return1 = position['amount1'] * ratio
+                
+                # Add returns to balance
+                price0 = self.live_market.get_price(position['token0']) or self.all_trading_pairs.get(position['token0'], 0)
+                price1 = self.live_market.get_price(position['token1']) or self.all_trading_pairs.get(position['token1'], 0)
+                
+                value0 = return0 * price0
+                value1 = return1 * price1
+                total_return = value0 + value1
+                
+                self.user_balance += total_return
+                
+                # Record transaction
+                transaction = {
+                    'type': 'REMOVE_LIQUIDITY',
+                    'token0': position['token0'],
+                    'token1': position['token1'],
+                    'lp_tokens': lp_amount,
+                    'return0': return0,
+                    'return1': return1,
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                self.transaction_history.append(transaction)
+                
+                print(f"{Colors.GREEN}Liquidity removed successfully!{Colors.END}")
+                print(f"  Removed {lp_amount:.6f} LP tokens")
+                print(f"  Received {return0:.6f} {position['token0']} and {return1:.6f} {position['token1']}")
+                print(f"  Total value: ${total_return:,.2f}")
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def uniswap_analytics(self):
+        """Display Uniswap analytics"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              UNISWAP ANALYTICS                              ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            pools = self.get_uniswap_pools()
+            
+            # Calculate analytics
+            total_liquidity = sum(pool['liquidity'] for pool in pools)
+            total_volume = sum(pool['volume24h'] for pool in pools)
+            
+            print(f"\n{Colors.YELLOW}PROTOCOL STATISTICS:{Colors.END}")
+            print(f"  Total Liquidity: ${total_liquidity:,.0f}")
+            print(f"  24h Volume: ${total_volume:,.0f}")
+            print(f"  Active Pools: {len(pools)}")
+            
+            print(f"\n{Colors.YELLOW}TOP POOLS BY VOLUME:{Colors.END}")
+            sorted_pools = sorted(pools, key=lambda x: x['volume24h'], reverse=True)
+            for i, pool in enumerate(sorted_pools[:5], 1):
+                print(f"  {i}. {pool['token0']}/{pool['token1']} - ${pool['volume24h']:,.0f}")
+            
+            print(f"\n{Colors.YELLOW}FEE TIER DISTRIBUTION:{Colors.END}")
+            fee_tiers = {}
+            for pool in pools:
+                fee = pool['feeTier']
+                fee_tiers[fee] = fee_tiers.get(fee, 0) + 1
+            
+            for fee, count in sorted(fee_tiers.items()):
+                print(f"  {fee}%: {count} pools")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Refresh | {Colors.GREEN}[0]{Colors.END} Back")
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                continue
 
 def main():
     """Main entry point"""
