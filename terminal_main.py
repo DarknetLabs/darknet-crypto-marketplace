@@ -465,11 +465,138 @@ class TerminalCryptoMarketplace:
         input("Press Enter to continue...")
 
     def chat_screen(self):
-        """Display chat rooms"""
-        print(f"\n{Colors.YELLOW}CHAT ROOMS{Colors.END}")
-        print(f"{Colors.WHITE}Chat rooms are available in the GUI version.{Colors.END}")
-        print(f"{Colors.WHITE}This terminal version focuses on trading functionality.{Colors.END}")
-        input("Press Enter to continue...")
+        """Display chat rooms - Terminal version"""
+        # Initialize username if not set
+        if not hasattr(self, 'chat_username'):
+            self.chat_username = self.get_chat_username()
+        
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                                CRYPTO CHAT ROOMS                             ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.YELLOW}Your Username: {Colors.WHITE}{self.chat_username}{Colors.END}")
+            print(f"{Colors.YELLOW}Available Rooms:{Colors.END}")
+            
+            # Default chat rooms (same as GUI version)
+            rooms = [
+                "Bitcoin-Talk", "Ethereum-Dev", "DeFi-Trading", "NFT-Collectors",
+                "Technical-Analysis", "Crypto-News", "Mining-Pools", "Security-Privacy",
+                "Regulatory-News", "Memecoins", "Stablecoins", "Liquidity-Mining",
+                "Options-Trading", "Futures-Trading", "Fundamental-Analysis",
+                "Sentiment-Analysis", "Whale-Watching", "Institutional-Adoption",
+                "Privacy-Coins", "Staking-Validators", "Darknet-Market",
+                "ICO-IDO-Launches", "Metaverse-Gaming", "AI-Crypto", "Green-Crypto",
+                "Quantum-Resistance", "Central-Bank-Digital-Currencies",
+                "Crypto-Education", "Bug-Bounties", "Crypto-Jobs",
+                "Crypto-Philosophy", "Cross-Chain-Bridges", "DAO-Governance"
+            ]
+            
+            # Display rooms in columns
+            for i in range(0, len(rooms), 3):
+                row = rooms[i:i+3]
+                for j, room in enumerate(row):
+                    print(f"  {Colors.GREEN}{i+j+1:2d}{Colors.END}. {Colors.WHITE}{room:<25}{Colors.END}", end="")
+                print()
+            
+            print(f"\n{Colors.GREEN}[1-33]{Colors.END} Join Room | {Colors.GREEN}[34]{Colors.END} Change Username | {Colors.GREEN}[0]{Colors.END} Back")
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '34':
+                self.chat_username = self.get_chat_username()
+            elif choice.isdigit() and 1 <= int(choice) <= len(rooms):
+                room_index = int(choice) - 1
+                self.join_chat_room(rooms[room_index])
+            else:
+                print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
+                time.sleep(1)
+
+    def get_chat_username(self):
+        """Get or generate chat username"""
+        username_file = "chat_username.txt"
+        
+        # Try to load existing username
+        if os.path.exists(username_file):
+            try:
+                with open(username_file, 'r', encoding='utf-8') as f:
+                    username = f.read().strip()
+                    if username:
+                        return username
+            except Exception:
+                pass
+        
+        # Generate new username
+        default = f"User{random.randint(1000,9999)}"
+        print(f"\n{Colors.YELLOW}Enter your chat username:{Colors.END}")
+        print(f"{Colors.WHITE}Press Enter to use: {Colors.GREEN}{default}{Colors.END}")
+        username = input(f"{Colors.CYAN}Username: {Colors.END}").strip()
+        
+        if not username:
+            username = default
+        
+        # Save username
+        try:
+            with open(username_file, 'w', encoding='utf-8') as f:
+                f.write(username)
+        except Exception:
+            pass
+        
+        return username
+
+    def join_chat_room(self, room_name):
+        """Join a specific chat room"""
+        API_URL = "https://chat-server-production-507c.up.railway.app"
+        
+        print(f"\n{Colors.GREEN}Joining {room_name}...{Colors.END}")
+        print(f"{Colors.WHITE}Type your messages below. Type 'exit' to leave.{Colors.END}")
+        print(f"{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+        
+        # Load existing messages
+        try:
+            resp = requests.get(f"{API_URL}/rooms/{room_name}/messages", timeout=5)
+            if resp.status_code == 200:
+                messages = resp.json()
+                for msg in messages[-10:]:  # Show last 10 messages
+                    print(f"{Colors.WHITE}[{msg['time']}] {msg['user']}: {msg['message']}{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Loading recent messages...{Colors.END}")
+        
+        print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+        
+        # Chat loop
+        while True:
+            try:
+                message = input(f"{Colors.GREEN}{self.chat_username}{Colors.END}: ").strip()
+                
+                if message.lower() == 'exit':
+                    break
+                elif not message:
+                    continue
+                
+                # Send message to server
+                try:
+                    requests.post(f"{API_URL}/rooms/{room_name}/messages", 
+                                json={"user": self.chat_username, "message": message}, 
+                                timeout=5)
+                except Exception:
+                    print(f"{Colors.RED}Failed to send message. Check your connection.{Colors.END}")
+                
+                # Small delay to prevent spam
+                time.sleep(0.5)
+                
+            except KeyboardInterrupt:
+                break
+            except Exception:
+                print(f"{Colors.RED}Error in chat. Returning to room list.{Colors.END}")
+                break
+        
+        print(f"{Colors.YELLOW}Left {room_name}{Colors.END}")
+        time.sleep(1)
 
     def history_screen(self):
         """Display transaction history"""
