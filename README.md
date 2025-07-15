@@ -6,7 +6,7 @@ A terminal-based cryptocurrency trading platform with real-time market data, por
 
 **Windows:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/darknet-crypto-marketplace.git
+git clone https://github.com/DarknetLabs/darknet-crypto-marketplace.git
 cd darknet-crypto-marketplace
 pip install -r requirements_terminal.txt
 python terminal_main.py
@@ -14,7 +14,7 @@ python terminal_main.py
 
 **Linux/Mac:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/darknet-crypto-marketplace.git
+git clone https://github.com/DarknetLabs/darknet-crypto-marketplace.git
 cd darknet-crypto-marketplace
 pip3 install -r requirements_terminal.txt
 python3 terminal_main.py
@@ -58,7 +58,7 @@ darknet-crypto-marketplace/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/darknet-crypto-marketplace.git
+   git clone https://github.com/DarknetLabs/darknet-crypto-marketplace.git
    cd darknet-crypto-marketplace
    ```
 
