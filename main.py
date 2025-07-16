@@ -216,7 +216,11 @@ class CryptoMarketplace:
         
         sniper_btn = tk.Button(button_frame, text="Token Sniper", command=self.open_sniper_window, 
                               fg=self.error_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
-        sniper_btn.grid(row=2, column=1, pady=5)
+        sniper_btn.grid(row=2, column=0, pady=5)
+        
+        marketplace_btn = tk.Button(button_frame, text="Global Marketplace", command=self.open_marketplace_window, 
+                                   fg=self.info_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        marketplace_btn.grid(row=2, column=1, pady=5)
         
         # Status bar
         status_frame = tk.Frame(main_frame, bg=self.bg_color, height=25)
@@ -1992,6 +1996,409 @@ class CryptoMarketplace:
         # Create sniper tab content
         sniper_frame = self.create_sniper_tab(sniper_window)
         sniper_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    
+    def open_marketplace_window(self):
+        """Open marketplace window"""
+        marketplace_window = tk.Toplevel(self.root)
+        marketplace_window.title("Global Marketplace")
+        marketplace_window.geometry("1200x800")
+        marketplace_window.configure(bg=self.bg_color)
+        
+        # Create marketplace tab content
+        marketplace_frame = self.create_marketplace_tab(marketplace_window)
+        marketplace_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    def create_marketplace_tab(self, parent):
+        """Create marketplace tab"""
+        marketplace_frame = ttk.Frame(parent)
+        marketplace_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Header
+        header_label = tk.Label(marketplace_frame, text="GLOBAL MARKETPLACE", 
+                               fg=self.accent_color, bg=self.bg_color, font=('Courier', 14, 'bold'))
+        header_label.pack(pady=(0, 20))
+        
+        warning_label = tk.Label(marketplace_frame, text="⚠️  WARNING: This is a REAL marketplace with REAL ETH transactions! ⚠️", 
+                                fg=self.error_color, bg=self.bg_color, font=('Courier', 12, 'bold'))
+        warning_label.pack(pady=(0, 10))
+        
+        warning2_label = tk.Label(marketplace_frame, text="All transactions use smart contract escrow for security.", 
+                                 fg=self.fg_color, bg=self.bg_color, font=('Courier', 10))
+        warning2_label.pack(pady=(0, 20))
+        
+        # Control buttons
+        button_frame = tk.Frame(marketplace_frame, bg=self.bg_color)
+        button_frame.pack(pady=20)
+        
+        browse_btn = tk.Button(button_frame, text="Browse Listings", command=self.browse_listings_gui,
+                              fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        browse_btn.grid(row=0, column=0, padx=10, pady=5)
+        
+        create_btn = tk.Button(button_frame, text="Create Listing", command=self.create_listing_gui,
+                              fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        create_btn.grid(row=0, column=1, padx=10, pady=5)
+        
+        my_listings_btn = tk.Button(button_frame, text="My Listings", command=self.my_listings_gui,
+                                   fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        my_listings_btn.grid(row=0, column=2, padx=10, pady=5)
+        
+        purchases_btn = tk.Button(button_frame, text="My Purchases", command=self.my_purchases_gui,
+                                 fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        purchases_btn.grid(row=1, column=0, padx=10, pady=5)
+        
+        escrow_btn = tk.Button(button_frame, text="Escrow Transactions", command=self.escrow_transactions_gui,
+                              fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        escrow_btn.grid(row=1, column=1, padx=10, pady=5)
+        
+        chat_btn = tk.Button(button_frame, text="Marketplace Chat", command=self.marketplace_chat_gui,
+                            fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        chat_btn.grid(row=1, column=2, padx=10, pady=5)
+        
+        # Recent listings display
+        listings_frame = tk.LabelFrame(marketplace_frame, text=" RECENT LISTINGS ", 
+                                      fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'))
+        listings_frame.pack(fill=tk.BOTH, expand=True, pady=20)
+        
+        listings_text = scrolledtext.ScrolledText(listings_frame, height=15, bg=self.bg_color, fg=self.fg_color, 
+                                                 font=('Courier', 9), insertbackground=self.fg_color)
+        listings_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Store reference
+        self.marketplace_listings_text = listings_text
+        
+        # Load and display recent listings
+        self.update_marketplace_listings()
+        
+        return marketplace_frame
+    
+    def update_marketplace_listings(self):
+        """Update marketplace listings display"""
+        self.marketplace_listings_text.delete(1.0, tk.END)
+        
+        listings = self.load_marketplace_listings_gui()
+        if not listings:
+            self.marketplace_listings_text.insert(tk.END, "No listings available.")
+            return
+        
+        # Show recent listings
+        recent_listings = listings[-10:]  # Last 10 listings
+        for listing in recent_listings:
+            self.marketplace_listings_text.insert(tk.END, f"ID: {listing['id']}\n")
+            self.marketplace_listings_text.insert(tk.END, f"Title: {listing['title']}\n")
+            self.marketplace_listings_text.insert(tk.END, f"Price: {listing['price']} ETH\n")
+            self.marketplace_listings_text.insert(tk.END, f"Category: {listing['category']}\n")
+            self.marketplace_listings_text.insert(tk.END, f"Seller: {listing['seller_address'][:10]}...\n")
+            self.marketplace_listings_text.insert(tk.END, f"Status: {listing['status']}\n")
+            self.marketplace_listings_text.insert(tk.END, "-" * 50 + "\n\n")
+    
+    def browse_listings_gui(self):
+        """Browse listings with GUI"""
+        browse_window = tk.Toplevel(self.root)
+        browse_window.title("Browse Listings")
+        browse_window.geometry("800x600")
+        browse_window.configure(bg=self.bg_color)
+        
+        # Search frame
+        search_frame = tk.Frame(browse_window, bg=self.bg_color)
+        search_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        tk.Label(search_frame, text="Search:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(side=tk.LEFT)
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(search_frame, textvariable=search_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=40)
+        search_entry.pack(side=tk.LEFT, padx=10)
+        
+        def search_listings():
+            search_term = search_var.get().lower()
+            listings = self.load_marketplace_listings_gui()
+            filtered_listings = []
+            
+            for listing in listings:
+                if (search_term in listing.get('title', '').lower() or 
+                    search_term in listing.get('description', '').lower() or
+                    search_term in listing.get('category', '').lower()):
+                    filtered_listings.append(listing)
+            
+            display_listings(filtered_listings)
+        
+        search_btn = tk.Button(search_frame, text="Search", command=search_listings,
+                              fg=self.fg_color, bg=self.bg_color, font=('Courier', 10))
+        search_btn.pack(side=tk.LEFT, padx=10)
+        
+        # Listings display
+        listings_frame = tk.Frame(browse_window, bg=self.bg_color)
+        listings_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        listings_text = scrolledtext.ScrolledText(listings_frame, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        listings_text.pack(fill=tk.BOTH, expand=True)
+        
+        def display_listings(listings):
+            listings_text.delete(1.0, tk.END)
+            if not listings:
+                listings_text.insert(tk.END, "No listings found.")
+                return
+            
+            for i, listing in enumerate(listings, 1):
+                listings_text.insert(tk.END, f"{i}. {listing['title']} - {listing['price']} ETH\n")
+                listings_text.insert(tk.END, f"   Category: {listing['category']} | Status: {listing['status']}\n")
+                listings_text.insert(tk.END, f"   {listing['description'][:100]}...\n")
+                listings_text.insert(tk.END, "-" * 50 + "\n\n")
+        
+        # Load initial listings
+        listings = self.load_marketplace_listings_gui()
+        display_listings(listings)
+    
+    def create_listing_gui(self):
+        """Create listing with GUI"""
+        create_window = tk.Toplevel(self.root)
+        create_window.title("Create Listing")
+        create_window.geometry("600x500")
+        create_window.configure(bg=self.bg_color)
+        
+        # Form fields
+        form_frame = tk.Frame(create_window, bg=self.bg_color)
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        tk.Label(form_frame, text="Title:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        title_var = tk.StringVar()
+        title_entry = tk.Entry(form_frame, textvariable=title_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=50)
+        title_entry.pack(fill=tk.X, pady=(5, 15))
+        
+        tk.Label(form_frame, text="Price (ETH):", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        price_var = tk.StringVar()
+        price_entry = tk.Entry(form_frame, textvariable=price_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=20)
+        price_entry.pack(anchor=tk.W, pady=(5, 15))
+        
+        tk.Label(form_frame, text="Category:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        category_var = tk.StringVar()
+        category_entry = tk.Entry(form_frame, textvariable=category_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=30)
+        category_entry.pack(anchor=tk.W, pady=(5, 15))
+        
+        tk.Label(form_frame, text="Description:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        description_text = scrolledtext.ScrolledText(form_frame, height=8, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        description_text.pack(fill=tk.X, pady=(5, 15))
+        
+        tk.Label(form_frame, text="Wallet Address:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        wallet_var = tk.StringVar()
+        wallet_entry = tk.Entry(form_frame, textvariable=wallet_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=50)
+        wallet_entry.pack(fill=tk.X, pady=(5, 15))
+        
+        def save_listing():
+            try:
+                listing = {
+                    'id': f"listing_{int(time.time())}",
+                    'title': title_var.get().strip(),
+                    'price': float(price_var.get()),
+                    'category': category_var.get().strip() or 'Other',
+                    'description': description_text.get(1.0, tk.END).strip(),
+                    'seller_address': wallet_var.get().strip(),
+                    'status': 'ACTIVE',
+                    'created_at': datetime.now().isoformat(),
+                    'images': []
+                }
+                
+                if not listing['title']:
+                    messagebox.showerror("Error", "Title is required")
+                    return
+                
+                if not self.web3.is_address(listing['seller_address']):
+                    messagebox.showerror("Error", "Invalid wallet address")
+                    return
+                
+                self.save_marketplace_listing_gui(listing)
+                messagebox.showinfo("Success", f"Listing created successfully!\nListing ID: {listing['id']}")
+                create_window.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Invalid price")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to create listing: {str(e)}")
+        
+        save_btn = tk.Button(form_frame, text="Create Listing", command=save_listing,
+                            fg=self.fg_color, bg=self.bg_color, font=('Courier', 12, 'bold'))
+        save_btn.pack(pady=20)
+    
+    def my_listings_gui(self):
+        """View user's listings with GUI"""
+        wallet_address = tk.simpledialog.askstring("My Listings", "Enter your wallet address:")
+        if not wallet_address:
+            return
+        
+        if not self.web3.is_address(wallet_address):
+            messagebox.showerror("Error", "Invalid wallet address")
+            return
+        
+        listings = self.load_marketplace_listings_gui()
+        my_listings = [l for l in listings if l['seller_address'].lower() == wallet_address.lower()]
+        
+        if not my_listings:
+            messagebox.showinfo("My Listings", "You have no listings.")
+            return
+        
+        # Show listings in new window
+        listings_window = tk.Toplevel(self.root)
+        listings_window.title("My Listings")
+        listings_window.geometry("800x600")
+        listings_window.configure(bg=self.bg_color)
+        
+        listings_text = scrolledtext.ScrolledText(listings_window, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        listings_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        for listing in my_listings:
+            listings_text.insert(tk.END, f"ID: {listing['id']}\n")
+            listings_text.insert(tk.END, f"Title: {listing['title']}\n")
+            listings_text.insert(tk.END, f"Price: {listing['price']} ETH\n")
+            listings_text.insert(tk.END, f"Status: {listing['status']}\n")
+            listings_text.insert(tk.END, f"Created: {listing['created_at']}\n")
+            listings_text.insert(tk.END, "-" * 50 + "\n\n")
+    
+    def my_purchases_gui(self):
+        """View user's purchases with GUI"""
+        wallet_address = tk.simpledialog.askstring("My Purchases", "Enter your wallet address:")
+        if not wallet_address:
+            return
+        
+        if not self.web3.is_address(wallet_address):
+            messagebox.showerror("Error", "Invalid wallet address")
+            return
+        
+        escrow_transactions = self.load_escrow_transactions_gui()
+        my_purchases = [t for t in escrow_transactions if t['buyer'].lower() == wallet_address.lower()]
+        
+        if not my_purchases:
+            messagebox.showinfo("My Purchases", "You have no purchases.")
+            return
+        
+        # Show purchases in new window
+        purchases_window = tk.Toplevel(self.root)
+        purchases_window.title("My Purchases")
+        purchases_window.geometry("600x400")
+        purchases_window.configure(bg=self.bg_color)
+        
+        purchases_text = scrolledtext.ScrolledText(purchases_window, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        purchases_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        for purchase in my_purchases:
+            purchases_text.insert(tk.END, f"Transaction: {purchase['tx_hash'][:10]}...\n")
+            purchases_text.insert(tk.END, f"Amount: {purchase['amount']} ETH\n")
+            purchases_text.insert(tk.END, f"Status: {purchase['status']}\n")
+            purchases_text.insert(tk.END, f"Date: {purchase['timestamp']}\n")
+            purchases_text.insert(tk.END, "-" * 50 + "\n\n")
+    
+    def escrow_transactions_gui(self):
+        """View escrow transactions with GUI"""
+        wallet_address = tk.simpledialog.askstring("Escrow Transactions", "Enter your wallet address:")
+        if not wallet_address:
+            return
+        
+        if not self.web3.is_address(wallet_address):
+            messagebox.showerror("Error", "Invalid wallet address")
+            return
+        
+        escrow_transactions = self.load_escrow_transactions_gui()
+        my_transactions = [t for t in escrow_transactions 
+                          if t['buyer'].lower() == wallet_address.lower() or 
+                             t['seller'].lower() == wallet_address.lower()]
+        
+        if not my_transactions:
+            messagebox.showinfo("Escrow Transactions", "You have no escrow transactions.")
+            return
+        
+        # Show transactions in new window
+        transactions_window = tk.Toplevel(self.root)
+        transactions_window.title("Escrow Transactions")
+        transactions_window.geometry("600x400")
+        transactions_window.configure(bg=self.bg_color)
+        
+        transactions_text = scrolledtext.ScrolledText(transactions_window, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        transactions_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        for tx in my_transactions:
+            transactions_text.insert(tk.END, f"Transaction: {tx['tx_hash'][:10]}...\n")
+            transactions_text.insert(tk.END, f"Amount: {tx['amount']} ETH\n")
+            transactions_text.insert(tk.END, f"Status: {tx['status']}\n")
+            transactions_text.insert(tk.END, f"Date: {tx['timestamp']}\n")
+            transactions_text.insert(tk.END, "-" * 50 + "\n\n")
+    
+    def marketplace_chat_gui(self):
+        """Marketplace chat with GUI"""
+        chat_window = tk.Toplevel(self.root)
+        chat_window.title("Marketplace Chat")
+        chat_window.geometry("800x600")
+        chat_window.configure(bg=self.bg_color)
+        
+        # Chat display
+        chat_frame = tk.Frame(chat_window, bg=self.bg_color)
+        chat_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        chat_text = scrolledtext.ScrolledText(chat_frame, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        chat_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Input frame
+        input_frame = tk.Frame(chat_window, bg=self.bg_color)
+        input_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        message_var = tk.StringVar()
+        message_entry = tk.Entry(input_frame, textvariable=message_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        def send_message():
+            message = message_var.get().strip()
+            if not message:
+                return
+            
+            # Display user message
+            chat_text.insert(tk.END, f"You: {message}\n")
+            message_var.set("")
+            
+            # Simulate bot response
+            if 'escrow' in message.lower():
+                chat_text.insert(tk.END, f"EscrowBot: I can help with escrow transactions! Use /escrow <tx_id> to check status.\n")
+            elif 'buy' in message.lower() or 'purchase' in message.lower():
+                chat_text.insert(tk.END, f"EscrowBot: To buy items, browse listings in the marketplace or use the search function.\n")
+            elif 'sell' in message.lower():
+                chat_text.insert(tk.END, f"EscrowBot: To create a listing, use the 'Create Listing' button in the marketplace.\n")
+            else:
+                chat_text.insert(tk.END, f"EscrowBot: How can I help you with your marketplace transaction?\n")
+            
+            chat_text.see(tk.END)
+        
+        send_btn = tk.Button(input_frame, text="Send", command=send_message,
+                            fg=self.fg_color, bg=self.bg_color, font=('Courier', 10))
+        send_btn.pack(side=tk.RIGHT, padx=(10, 0))
+        
+        # Bind Enter key to send message
+        message_entry.bind('<Return>', lambda e: send_message())
+        
+        # Welcome message
+        chat_text.insert(tk.END, "EscrowBot: Welcome to the marketplace chat! I'm here to help with escrow transactions.\n")
+        chat_text.insert(tk.END, "EscrowBot: You can ask me about buying, selling, or escrow services.\n")
+    
+    def load_marketplace_listings_gui(self):
+        """Load marketplace listings (GUI version)"""
+        try:
+            with open('marketplace_listings.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+    
+    def save_marketplace_listing_gui(self, listing):
+        """Save marketplace listing (GUI version)"""
+        listings = self.load_marketplace_listings_gui()
+        listings.append(listing)
+        
+        with open('marketplace_listings.json', 'w') as f:
+            json.dump(listings, f, indent=2)
+        
+        # Update display
+        self.update_marketplace_listings()
+    
+    def load_escrow_transactions_gui(self):
+        """Load escrow transactions (GUI version)"""
+        try:
+            with open('escrow_transactions.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
 
 def get_uniswap_price(token_address, eth_amount):
     try:

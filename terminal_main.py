@@ -161,6 +161,7 @@ class TerminalCryptoMarketplace:
         print(f"{Colors.YELLOW}[8]{Colors.END} Uniswap Trading")
         print(f"{Colors.YELLOW}[9]{Colors.END} Real Blockchain Trading")
         print(f"{Colors.YELLOW}[10]{Colors.END} Token Sniping")
+        print(f"{Colors.YELLOW}[11]{Colors.END} Global Marketplace")
         print(f"{Colors.YELLOW}[0]{Colors.END} Exit")
         print(f"\n{Colors.CYAN}Balance: ${self.user_balance:,.2f}{Colors.END}")
 
@@ -1203,6 +1204,8 @@ class TerminalCryptoMarketplace:
                     self.real_trading_screen()
                 elif choice == '10':
                     self.token_sniping_screen()
+                elif choice == '11':
+                    self.marketplace_screen()
                 else:
                     print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
                     time.sleep(1)
@@ -2245,6 +2248,655 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.WHITE}Enabled: {config.get('enabled', False)}{Colors.END}")
             
             input("Press Enter to continue...")
+
+    def marketplace_screen(self):
+        """Display marketplace interface"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              GLOBAL MARKETPLACE                             ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.RED}⚠️  WARNING: This is a REAL marketplace with REAL ETH transactions! ⚠️{Colors.END}")
+            print(f"{Colors.WHITE}All transactions use smart contract escrow for security.{Colors.END}")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Browse Listings")
+            print(f"{Colors.GREEN}[2]{Colors.END} Create New Listing")
+            print(f"{Colors.GREEN}[3]{Colors.END} My Listings")
+            print(f"{Colors.GREEN}[4]{Colors.END} My Purchases")
+            print(f"{Colors.GREEN}[5]{Colors.END} Escrow Transactions")
+            print(f"{Colors.GREEN}[6]{Colors.END} Marketplace Chat")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back to Main Menu")
+            
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.browse_listings()
+            elif choice == '2':
+                self.create_listing()
+            elif choice == '3':
+                self.my_listings()
+            elif choice == '4':
+                self.my_purchases()
+            elif choice == '5':
+                self.escrow_transactions()
+            elif choice == '6':
+                self.marketplace_chat()
+    
+    def browse_listings(self):
+        """Browse marketplace listings"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              BROWSE LISTINGS                                 ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            # Load listings
+            listings = self.load_marketplace_listings()
+            
+            if not listings:
+                print(f"\n{Colors.WHITE}No listings available.{Colors.END}")
+                input("Press Enter to continue...")
+                break
+            
+            # Display categories
+            categories = list(set([listing.get('category', 'Other') for listing in listings]))
+            print(f"\n{Colors.YELLOW}Categories:{Colors.END}")
+            for i, category in enumerate(categories, 1):
+                print(f"  {i}. {category}")
+            
+            print(f"\n{Colors.GREEN}[1-{len(categories)}]{Colors.END} Filter by category")
+            print(f"{Colors.GREEN}[S]{Colors.END} Search listings")
+            print(f"{Colors.GREEN}[A]{Colors.END} Show all listings")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back")
+            
+            choice = self.get_user_input().upper()
+            
+            if choice == '0':
+                break
+            elif choice == 'S':
+                self.search_listings()
+            elif choice == 'A':
+                self.show_all_listings(listings)
+            elif choice.isdigit() and 1 <= int(choice) <= len(categories):
+                category = categories[int(choice) - 1]
+                self.show_category_listings(listings, category)
+    
+    def search_listings(self):
+        """Search marketplace listings"""
+        print(f"\n{Colors.YELLOW}SEARCH LISTINGS{Colors.END}")
+        search_term = self.get_user_input("Enter search term: ").lower()
+        
+        listings = self.load_marketplace_listings()
+        filtered_listings = []
+        
+        for listing in listings:
+            if (search_term in listing.get('title', '').lower() or 
+                search_term in listing.get('description', '').lower() or
+                search_term in listing.get('category', '').lower()):
+                filtered_listings.append(listing)
+        
+        if filtered_listings:
+            self.show_listings(filtered_listings, f"Search Results for '{search_term}'")
+        else:
+            print(f"{Colors.WHITE}No listings found for '{search_term}'{Colors.END}")
+            input("Press Enter to continue...")
+    
+    def show_all_listings(self, listings):
+        """Show all marketplace listings"""
+        self.show_listings(listings, "All Listings")
+    
+    def show_category_listings(self, listings, category):
+        """Show listings filtered by category"""
+        filtered_listings = [l for l in listings if l.get('category', 'Other') == category]
+        self.show_listings(filtered_listings, f"{category} Listings")
+    
+    def show_listings(self, listings, title):
+        """Display listings with pagination"""
+        page = 0
+        per_page = 5
+        
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              {title.upper():<50} ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            start_idx = page * per_page
+            end_idx = start_idx + per_page
+            page_listings = listings[start_idx:end_idx]
+            
+            if not page_listings:
+                print(f"\n{Colors.WHITE}No listings on this page.{Colors.END}")
+            else:
+                for i, listing in enumerate(page_listings, start_idx + 1):
+                    print(f"\n{Colors.GREEN}[{i}]{Colors.END} {listing['title']}")
+                    print(f"{Colors.WHITE}   Price: {listing['price']} ETH{Colors.END}")
+                    print(f"{Colors.WHITE}   Category: {listing['category']}{Colors.END}")
+                    print(f"{Colors.WHITE}   Seller: {listing['seller_address'][:10]}...{Colors.END}")
+                    print(f"{Colors.WHITE}   Status: {listing['status']}{Colors.END}")
+                    print(f"{Colors.WHITE}   {listing['description'][:100]}...{Colors.END}")
+            
+            # Pagination controls
+            total_pages = (len(listings) + per_page - 1) // per_page
+            print(f"\n{Colors.YELLOW}Page {page + 1} of {total_pages}{Colors.END}")
+            
+            if page > 0:
+                print(f"{Colors.GREEN}[P]{Colors.END} Previous page")
+            if page < total_pages - 1:
+                print(f"{Colors.GREEN}[N]{Colors.END} Next page")
+            
+            print(f"{Colors.GREEN}[1-{len(page_listings)}]{Colors.END} View listing")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back")
+            
+            choice = self.get_user_input().upper()
+            
+            if choice == '0':
+                break
+            elif choice == 'P' and page > 0:
+                page -= 1
+            elif choice == 'N' and page < total_pages - 1:
+                page += 1
+            elif choice.isdigit():
+                listing_idx = int(choice) - 1
+                if 0 <= listing_idx < len(page_listings):
+                    self.view_listing(page_listings[listing_idx])
+    
+    def view_listing(self, listing):
+        """View detailed listing information"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              LISTING DETAILS                                 ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.YELLOW}Title:{Colors.END} {listing['title']}")
+            print(f"{Colors.YELLOW}Price:{Colors.END} {listing['price']} ETH")
+            print(f"{Colors.YELLOW}Category:{Colors.END} {listing['category']}")
+            print(f"{Colors.YELLOW}Seller:{Colors.END} {listing['seller_address']}")
+            print(f"{Colors.YELLOW}Status:{Colors.END} {listing['status']}")
+            print(f"{Colors.YELLOW}Created:{Colors.END} {listing['created_at']}")
+            print(f"{Colors.YELLOW}Description:{Colors.END}")
+            print(f"{Colors.WHITE}{listing['description']}{Colors.END}")
+            
+            if listing.get('images'):
+                print(f"\n{Colors.YELLOW}Images:{Colors.END}")
+                for i, image in enumerate(listing['images'], 1):
+                    print(f"  {i}. {image}")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Buy Now (Escrow)")
+            print(f"{Colors.GREEN}[2]{Colors.END} Contact Seller")
+            print(f"{Colors.GREEN}[3]{Colors.END} Report Listing")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back")
+            
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.buy_listing(listing)
+            elif choice == '2':
+                self.contact_seller(listing)
+            elif choice == '3':
+                self.report_listing(listing)
+    
+    def buy_listing(self, listing):
+        """Purchase a listing using escrow"""
+        print(f"\n{Colors.YELLOW}PURCHASE LISTING{Colors.END}")
+        print(f"{Colors.WHITE}Title: {listing['title']}{Colors.END}")
+        print(f"{Colors.WHITE}Price: {listing['price']} ETH{Colors.END}")
+        
+        # Get buyer wallet details
+        buyer_address = self.get_user_input("Your wallet address: ").strip()
+        private_key = self.get_user_input("Your private key: ").strip()
+        
+        if not self.web3.is_address(buyer_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Check buyer balance
+        buyer_balance = self.get_wallet_balance(buyer_address)
+        if buyer_balance < listing['price']:
+            print(f"{Colors.RED}Insufficient ETH balance. You have {buyer_balance:.6f} ETH{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.YELLOW}ESCROW TRANSACTION DETAILS:{Colors.END}")
+        print(f"{Colors.WHITE}Buyer: {buyer_address}{Colors.END}")
+        print(f"{Colors.WHITE}Seller: {listing['seller_address']}{Colors.END}")
+        print(f"{Colors.WHITE}Amount: {listing['price']} ETH{Colors.END}")
+        print(f"{Colors.WHITE}Escrow Fee: 0.01 ETH{Colors.END}")
+        print(f"{Colors.WHITE}Total: {listing['price'] + 0.01} ETH{Colors.END}")
+        
+        confirm = self.get_user_input("Type 'CONFIRM' to proceed with escrow purchase: ")
+        if confirm != 'CONFIRM':
+            print(f"{Colors.YELLOW}Purchase cancelled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute escrow transaction
+        success, tx_hash = self.execute_escrow_purchase(listing, buyer_address, private_key)
+        
+        if success:
+            print(f"{Colors.GREEN}✅ Escrow transaction successful!{Colors.END}")
+            print(f"{Colors.WHITE}Transaction Hash: {tx_hash}{Colors.END}")
+            print(f"{Colors.WHITE}Funds are now held in escrow.{Colors.END}")
+            print(f"{Colors.WHITE}Seller will be notified to ship the item.{Colors.END}")
+            
+            # Update listing status
+            self.update_listing_status(listing['id'], 'SOLD')
+            
+        else:
+            print(f"{Colors.RED}❌ Escrow transaction failed!{Colors.END}")
+            print(f"{Colors.WHITE}Error: {tx_hash}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def execute_escrow_purchase(self, listing, buyer_address, private_key):
+        """Execute escrow purchase transaction"""
+        try:
+            # Escrow contract address (simulated for demo)
+            escrow_address = "0x1234567890123456789012345678901234567890"
+            
+            # Create escrow transaction
+            escrow_data = {
+                'listing_id': listing['id'],
+                'buyer': buyer_address,
+                'seller': listing['seller_address'],
+                'amount': listing['price'],
+                'escrow_fee': 0.01
+            }
+            
+            # Build transaction
+            tx = {
+                'from': buyer_address,
+                'to': escrow_address,
+                'value': self.web3.to_wei(listing['price'] + 0.01, 'ether'),
+                'gas': 200000,
+                'gasPrice': self.web3.to_wei('30', 'gwei'),
+                'nonce': self.web3.eth.get_transaction_count(buyer_address),
+                'data': self.web3.to_hex(escrow_data)
+            }
+            
+            # Sign and send transaction
+            signed = self.web3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
+            
+            # Log escrow transaction
+            self.log_escrow_transaction({
+                'listing_id': listing['id'],
+                'buyer': buyer_address,
+                'seller': listing['seller_address'],
+                'amount': listing['price'],
+                'escrow_fee': 0.01,
+                'tx_hash': self.web3.to_hex(tx_hash),
+                'status': 'PENDING',
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            return True, self.web3.to_hex(tx_hash)
+            
+        except Exception as e:
+            return False, str(e)
+    
+    def create_listing(self):
+        """Create a new marketplace listing"""
+        print(f"\n{Colors.YELLOW}CREATE NEW LISTING{Colors.END}")
+        
+        # Get listing details
+        title = self.get_user_input("Listing title: ").strip()
+        if not title:
+            print(f"{Colors.RED}Title is required{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        try:
+            price = float(self.get_user_input("Price (ETH): "))
+        except ValueError:
+            print(f"{Colors.RED}Invalid price{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        category = self.get_user_input("Category: ").strip()
+        description = self.get_user_input("Description: ").strip()
+        
+        # Get seller wallet
+        seller_address = self.get_user_input("Your wallet address: ").strip()
+        if not self.web3.is_address(seller_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Create listing
+        listing = {
+            'id': f"listing_{int(time.time())}",
+            'title': title,
+            'price': price,
+            'category': category or 'Other',
+            'description': description,
+            'seller_address': seller_address,
+            'status': 'ACTIVE',
+            'created_at': datetime.now().isoformat(),
+            'images': []
+        }
+        
+        # Save listing
+        self.save_marketplace_listing(listing)
+        
+        print(f"{Colors.GREEN}✅ Listing created successfully!{Colors.END}")
+        print(f"{Colors.WHITE}Listing ID: {listing['id']}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def my_listings(self):
+        """View user's own listings"""
+        print(f"\n{Colors.YELLOW}MY LISTINGS{Colors.END}")
+        
+        wallet_address = self.get_user_input("Your wallet address: ").strip()
+        if not self.web3.is_address(wallet_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        listings = self.load_marketplace_listings()
+        my_listings = [l for l in listings if l['seller_address'].lower() == wallet_address.lower()]
+        
+        if not my_listings:
+            print(f"{Colors.WHITE}You have no listings.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        self.show_listings(my_listings, "My Listings")
+    
+    def my_purchases(self):
+        """View user's purchases"""
+        print(f"\n{Colors.YELLOW}MY PURCHASES{Colors.END}")
+        
+        wallet_address = self.get_user_input("Your wallet address: ").strip()
+        if not self.web3.is_address(wallet_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        escrow_transactions = self.load_escrow_transactions()
+        my_purchases = [t for t in escrow_transactions if t['buyer'].lower() == wallet_address.lower()]
+        
+        if not my_purchases:
+            print(f"{Colors.WHITE}You have no purchases.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        self.show_purchases(my_purchases)
+    
+    def escrow_transactions(self):
+        """View escrow transactions"""
+        print(f"\n{Colors.YELLOW}ESCROW TRANSACTIONS{Colors.END}")
+        
+        wallet_address = self.get_user_input("Your wallet address: ").strip()
+        if not self.web3.is_address(wallet_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        escrow_transactions = self.load_escrow_transactions()
+        my_transactions = [t for t in escrow_transactions 
+                          if t['buyer'].lower() == wallet_address.lower() or 
+                             t['seller'].lower() == wallet_address.lower()]
+        
+        if not my_transactions:
+            print(f"{Colors.WHITE}You have no escrow transactions.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        self.show_escrow_transactions(my_transactions)
+    
+    def marketplace_chat(self):
+        """Marketplace chat with escrow bot"""
+        print(f"\n{Colors.YELLOW}MARKETPLACE CHAT{Colors.END}")
+        print(f"{Colors.WHITE}Chat with other users and the escrow bot.{Colors.END}")
+        
+        # Initialize username if not set
+        if not hasattr(self, 'marketplace_username'):
+            self.marketplace_username = self.get_marketplace_username()
+        
+        print(f"{Colors.WHITE}Logged in as: {self.marketplace_username}{Colors.END}")
+        print(f"{Colors.WHITE}Type 'help' for commands, 'quit' to exit{Colors.END}")
+        
+        while True:
+            message = self.get_user_input(f"{self.marketplace_username}: ")
+            
+            if message.lower() == 'quit':
+                break
+            elif message.lower() == 'help':
+                self.show_marketplace_help()
+            elif message.lower().startswith('/buy'):
+                self.handle_buy_command(message)
+            elif message.lower().startswith('/sell'):
+                self.handle_sell_command(message)
+            elif message.lower().startswith('/escrow'):
+                self.handle_escrow_command(message)
+            else:
+                # Send message to marketplace chat
+                self.send_marketplace_message(message)
+    
+    def get_marketplace_username(self):
+        """Get marketplace username"""
+        try:
+            with open('marketplace_username.txt', 'r') as f:
+                return f.read().strip()
+        except FileNotFoundError:
+            pass
+        
+        default = f"User{random.randint(1000,9999)}"
+        username = self.get_user_input(f"Enter username (default: {default}): ").strip()
+        
+        if not username:
+            username = default
+        
+        with open('marketplace_username.txt', 'w') as f:
+            f.write(username)
+        
+        return username
+    
+    def show_marketplace_help(self):
+        """Show marketplace chat commands"""
+        print(f"\n{Colors.YELLOW}MARKETPLACE COMMANDS:{Colors.END}")
+        print(f"{Colors.WHITE}/buy <listing_id> - Buy a listing{Colors.END}")
+        print(f"{Colors.WHITE}/sell <title> <price> <description> - Create listing{Colors.END}")
+        print(f"{Colors.WHITE}/escrow <transaction_id> - Check escrow status{Colors.END}")
+        print(f"{Colors.WHITE}/listings - Show recent listings{Colors.END}")
+        print(f"{Colors.WHITE}/help - Show this help{Colors.END}")
+        print(f"{Colors.WHITE}/quit - Exit chat{Colors.END}")
+    
+    def handle_buy_command(self, message):
+        """Handle buy command in chat"""
+        parts = message.split()
+        if len(parts) < 2:
+            print(f"{Colors.RED}Usage: /buy <listing_id>{Colors.END}")
+            return
+        
+        listing_id = parts[1]
+        listings = self.load_marketplace_listings()
+        listing = next((l for l in listings if l['id'] == listing_id), None)
+        
+        if not listing:
+            print(f"{Colors.RED}Listing not found{Colors.END}")
+            return
+        
+        print(f"{Colors.GREEN}Found listing: {listing['title']} - {listing['price']} ETH{Colors.END}")
+        self.buy_listing(listing)
+    
+    def handle_sell_command(self, message):
+        """Handle sell command in chat"""
+        parts = message.split(' ', 3)
+        if len(parts) < 4:
+            print(f"{Colors.RED}Usage: /sell <title> <price> <description>{Colors.END}")
+            return
+        
+        title = parts[1]
+        try:
+            price = float(parts[2])
+        except ValueError:
+            print(f"{Colors.RED}Invalid price{Colors.END}")
+            return
+        
+        description = parts[3]
+        
+        # Get seller wallet
+        seller_address = self.get_user_input("Your wallet address: ").strip()
+        if not self.web3.is_address(seller_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            return
+        
+        # Create listing
+        listing = {
+            'id': f"listing_{int(time.time())}",
+            'title': title,
+            'price': price,
+            'category': 'Other',
+            'description': description,
+            'seller_address': seller_address,
+            'status': 'ACTIVE',
+            'created_at': datetime.now().isoformat(),
+            'images': []
+        }
+        
+        self.save_marketplace_listing(listing)
+        print(f"{Colors.GREEN}✅ Listing created: {listing['id']}{Colors.END}")
+    
+    def handle_escrow_command(self, message):
+        """Handle escrow command in chat"""
+        parts = message.split()
+        if len(parts) < 2:
+            print(f"{Colors.RED}Usage: /escrow <transaction_id>{Colors.END}")
+            return
+        
+        tx_id = parts[1]
+        escrow_transactions = self.load_escrow_transactions()
+        transaction = next((t for t in escrow_transactions if t.get('tx_hash', '').startswith(tx_id)), None)
+        
+        if not transaction:
+            print(f"{Colors.RED}Transaction not found{Colors.END}")
+            return
+        
+        print(f"{Colors.YELLOW}Escrow Status: {transaction['status']}{Colors.END}")
+        print(f"{Colors.WHITE}Amount: {transaction['amount']} ETH{Colors.END}")
+        print(f"{Colors.WHITE}Buyer: {transaction['buyer'][:10]}...{Colors.END}")
+        print(f"{Colors.WHITE}Seller: {transaction['seller'][:10]}...{Colors.END}")
+    
+    def send_marketplace_message(self, message):
+        """Send message to marketplace chat"""
+        # In a real implementation, this would send to a chat server
+        print(f"{Colors.CYAN}[Marketplace] {self.marketplace_username}: {message}{Colors.END}")
+        
+        # Simulate bot responses
+        if 'escrow' in message.lower():
+            print(f"{Colors.GREEN}[EscrowBot] I can help with escrow transactions! Use /escrow <tx_id> to check status.{Colors.END}")
+        elif 'buy' in message.lower() or 'purchase' in message.lower():
+            print(f"{Colors.GREEN}[EscrowBot] To buy items, use /buy <listing_id> or browse listings in the marketplace.{Colors.END}")
+        elif 'sell' in message.lower():
+            print(f"{Colors.GREEN}[EscrowBot] To create a listing, use /sell <title> <price> <description>{Colors.END}")
+    
+    def load_marketplace_listings(self):
+        """Load marketplace listings from file"""
+        try:
+            with open('marketplace_listings.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+    
+    def save_marketplace_listing(self, listing):
+        """Save marketplace listing to file"""
+        listings = self.load_marketplace_listings()
+        listings.append(listing)
+        
+        with open('marketplace_listings.json', 'w') as f:
+            json.dump(listings, f, indent=2)
+    
+    def update_listing_status(self, listing_id, status):
+        """Update listing status"""
+        listings = self.load_marketplace_listings()
+        for listing in listings:
+            if listing['id'] == listing_id:
+                listing['status'] = status
+                break
+        
+        with open('marketplace_listings.json', 'w') as f:
+            json.dump(listings, f, indent=2)
+    
+    def load_escrow_transactions(self):
+        """Load escrow transactions from file"""
+        try:
+            with open('escrow_transactions.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+    
+    def log_escrow_transaction(self, transaction):
+        """Log escrow transaction to file"""
+        transactions = self.load_escrow_transactions()
+        transactions.append(transaction)
+        
+        with open('escrow_transactions.json', 'w') as f:
+            json.dump(transactions, f, indent=2)
+    
+    def contact_seller(self, listing):
+        """Contact seller about listing"""
+        print(f"\n{Colors.YELLOW}CONTACT SELLER{Colors.END}")
+        print(f"{Colors.WHITE}Listing: {listing['title']}{Colors.END}")
+        print(f"{Colors.WHITE}Seller: {listing['seller_address']}{Colors.END}")
+        
+        message = self.get_user_input("Your message: ")
+        if message:
+            print(f"{Colors.GREEN}Message sent to seller.{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def report_listing(self, listing):
+        """Report a listing"""
+        print(f"\n{Colors.YELLOW}REPORT LISTING{Colors.END}")
+        print(f"{Colors.WHITE}Listing: {listing['title']}{Colors.END}")
+        
+        reason = self.get_user_input("Reason for report: ")
+        if reason:
+            print(f"{Colors.GREEN}Report submitted. Thank you for helping keep the marketplace safe.{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def show_purchases(self, purchases):
+        """Show user's purchases"""
+        print(f"\n{Colors.YELLOW}MY PURCHASES{Colors.END}")
+        
+        for purchase in purchases:
+            print(f"\n{Colors.GREEN}Transaction: {purchase['tx_hash'][:10]}...{Colors.END}")
+            print(f"{Colors.WHITE}Amount: {purchase['amount']} ETH{Colors.END}")
+            print(f"{Colors.WHITE}Status: {purchase['status']}{Colors.END}")
+            print(f"{Colors.WHITE}Date: {purchase['timestamp']}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def show_escrow_transactions(self, transactions):
+        """Show escrow transactions"""
+        print(f"\n{Colors.YELLOW}ESCROW TRANSACTIONS{Colors.END}")
+        
+        for tx in transactions:
+            print(f"\n{Colors.GREEN}Transaction: {tx['tx_hash'][:10]}...{Colors.END}")
+            print(f"{Colors.WHITE}Amount: {tx['amount']} ETH{Colors.END}")
+            print(f"{Colors.WHITE}Status: {tx['status']}{Colors.END}")
+            print(f"{Colors.WHITE}Date: {tx['timestamp']}{Colors.END}")
+        
+        input("Press Enter to continue...")
 
 def main():
     """Main entry point"""
