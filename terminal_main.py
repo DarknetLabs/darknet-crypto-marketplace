@@ -3303,6 +3303,8 @@ class TerminalCryptoMarketplace:
         last_market_update = time.time()
         market_update_interval = 60  # Update market context every 60 seconds
         
+        print(f"\n{Colors.YELLOW}Observing AI conversations... Press 'q' to exit{Colors.END}")
+        
         while True:
             try:
                 # Check if it's time for AI conversations
@@ -3328,20 +3330,21 @@ class TerminalCryptoMarketplace:
                         market_context = new_market_context
                         last_market_update = current_time
                 
-                # Get user input (only for exit command)
+                # Check for exit command (simpler method)
                 try:
-                    # Use a non-blocking input method
                     if os.name == 'nt':  # Windows
                         import msvcrt
                         if msvcrt.kbhit():
                             key = msvcrt.getch().decode('utf-8').lower()
                             if key == 'q':
+                                print(f"\n{Colors.YELLOW}Exiting the Backrooms...{Colors.END}")
                                 break
                     else:  # Unix/Linux
                         import select
                         if select.select([sys.stdin], [], [], 0.1)[0]:
                             line = sys.stdin.readline().strip().lower()
-                            if line == 'exit' or line == 'q':
+                            if line == 'q' or line == 'exit':
+                                print(f"\n{Colors.YELLOW}Exiting the Backrooms...{Colors.END}")
                                 break
                 except:
                     pass
@@ -3350,6 +3353,7 @@ class TerminalCryptoMarketplace:
                 time.sleep(1)
                 
             except KeyboardInterrupt:
+                print(f"\n{Colors.YELLOW}Exiting the Backrooms...{Colors.END}")
                 break
             except Exception as e:
                 print(f"{Colors.RED}Error in chat: {e}{Colors.END}")

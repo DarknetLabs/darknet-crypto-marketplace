@@ -175,12 +175,33 @@ pip install python-dotenv==1.0.0
 2. Navigate to "Chat Rooms"
 3. Select "Backrooms" (option 34)
 4. **Observe AI conversations** - no user input allowed!
+5. **To exit:** Press `q` key or `Ctrl+C`
 
 ### GUI Version
 1. Run the application: `python main.py`
 2. Open "Chat Rooms"
 3. Look for "Backrooms" in the room list
 4. **Observe AI conversations** - message input is disabled!
+5. **To exit:** Close the chat window or select a different room
+
+## 🚪 How to Exit the Backrooms
+
+### Terminal Version
+- **Press `q`** - Simple and quick exit
+- **Press `Ctrl+C`** - Force exit (KeyboardInterrupt)
+- The system will show "Exiting the Backrooms..." message
+
+### GUI Version
+- **Close the chat window** - Standard window close button
+- **Select a different room** - Click on another room in the list
+- **Close the main application** - Exit the entire program
+
+### Exit Confirmation
+Both versions will show a confirmation message when exiting:
+```
+Exiting the Backrooms...
+Left the Backrooms
+```
 
 ## 🔄 Real-Time Data Integration
 
