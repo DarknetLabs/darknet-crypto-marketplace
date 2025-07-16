@@ -15,14 +15,15 @@ class LiveMarketData:
             'cryptocompare': 'https://min-api.cryptocompare.com/data/price'
         }
         
+        # Create session with basic retry configuration
         self.session = requests.Session()
+        
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
         
-        # Add timeout and retry configuration
-        self.session.timeout = 3  # 3 second timeout
-        self.max_retries = 2
+        # Shorter timeout for faster fallback
+        self.timeout = 2  # 2 second timeout
         
         self.live_prices = {}
         self.last_update = {}
@@ -30,6 +31,20 @@ class LiveMarketData:
         self.is_running = False
         self.network_available = True
         self.last_network_check = 0
+        
+        # API failure tracking for intelligent fallback
+        self.api_failures = {
+            'coingecko': 0,
+            'binance': 0,
+            'cryptocompare': 0,
+            'coinbase': 0
+        }
+        self.last_api_success = {
+            'coingecko': 0,
+            'binance': 0,
+            'cryptocompare': 0,
+            'coinbase': 0
+        }
         
     def check_network_connectivity(self):
         """Check if network is available"""
@@ -49,11 +64,15 @@ class LiveMarketData:
             
         try:
             url = self.api_endpoints['coinbase'].format(symbol)
-            response = self.session.get(url, timeout=3)
+            response = self.session.get(url, timeout=self.timeout)
             if response.status_code == 200:
                 data = response.json()
-                return float(data['data']['amount'])
+                price = float(data['data']['amount'])
+                self.api_failures['coinbase'] = 0
+                self.last_api_success['coinbase'] = int(time.time())
+                return price
         except (requests.exceptions.RequestException, ValueError, KeyError) as e:
+            self.api_failures['coinbase'] += 1
             if "getaddrinfo failed" not in str(e):  # Don't log DNS errors
                 print(f"Coinbase API error for {symbol}: {e}")
         return None
@@ -65,18 +84,26 @@ class LiveMarketData:
             
         try:
             params = {'symbol': f'{symbol}USDT'}
-            response = self.session.get(self.api_endpoints['binance'], params=params, timeout=3)
+            response = self.session.get(self.api_endpoints['binance'], params=params, timeout=self.timeout)
             if response.status_code == 200:
                 data = response.json()
-                return float(data['price'])
+                price = float(data['price'])
+                self.api_failures['binance'] = 0
+                self.last_api_success['binance'] = int(time.time())
+                return price
         except (requests.exceptions.RequestException, ValueError, KeyError) as e:
+            self.api_failures['binance'] += 1
             if "getaddrinfo failed" not in str(e):  # Don't log DNS errors
                 print(f"Binance API error for {symbol}: {e}")
         return None
     
     def get_coingecko_price(self, symbol):
-        """Get price from CoinGecko API"""
+        """Get price from CoinGecko API with enhanced error handling"""
         if not self.network_available:
+            return None
+            
+        # Skip CoinGecko if it has failed too many times recently
+        if self.api_failures['coingecko'] > 5:
             return None
             
         try:
@@ -132,12 +159,26 @@ class LiveMarketData:
                 'ids': coin_id,
                 'vs_currencies': 'usd'
             }
-            response = self.session.get(self.api_endpoints['coingecko'], params=params, timeout=5)
+            
+            # Use shorter timeout for CoinGecko
+            response = self.session.get(self.api_endpoints['coingecko'], params=params, timeout=3)
             if response.status_code == 200:
                 data = response.json()
                 if coin_id in data and 'usd' in data[coin_id]:
-                    return float(data[coin_id]['usd'])
+                    price = float(data[coin_id]['usd'])
+                    self.api_failures['coingecko'] = 0
+                    self.last_api_success['coingecko'] = int(time.time())
+                    return price
+            elif response.status_code == 429:  # Rate limited
+                print(f"CoinGecko rate limited for {symbol}, will retry later")
+                self.api_failures['coingecko'] += 2  # Penalize rate limits more
+                return None
+        except requests.exceptions.Timeout:
+            print(f"CoinGecko timeout for {symbol}, trying fallback APIs")
+            self.api_failures['coingecko'] += 1
+            return None
         except (requests.exceptions.RequestException, ValueError, KeyError) as e:
+            self.api_failures['coingecko'] += 1
             if "getaddrinfo failed" not in str(e):  # Don't log DNS errors
                 print(f"CoinGecko API error for {symbol}: {e}")
         return None
@@ -152,45 +193,70 @@ class LiveMarketData:
                 'fsym': symbol,
                 'tsyms': 'USD'
             }
-            response = self.session.get(self.api_endpoints['cryptocompare'], params=params, timeout=3)
+            response = self.session.get(self.api_endpoints['cryptocompare'], params=params, timeout=self.timeout)
             if response.status_code == 200:
                 data = response.json()
                 if 'USD' in data:
-                    return float(data['USD'])
+                    price = float(data['USD'])
+                    self.api_failures['cryptocompare'] = 0
+                    self.last_api_success['cryptocompare'] = int(time.time())
+                    return price
         except (requests.exceptions.RequestException, ValueError, KeyError) as e:
+            self.api_failures['cryptocompare'] += 1
             if "getaddrinfo failed" not in str(e):  # Don't log DNS errors
                 print(f"CryptoCompare API error for {symbol}: {e}")
         return None
     
     def get_live_price(self, symbol):
-        """Get live price from multiple sources with fallback"""
+        """Get live price from multiple sources with intelligent fallback"""
         # Check network connectivity periodically
         current_time = time.time()
         if current_time - self.last_network_check > 60:  # Check every minute
             self.check_network_connectivity()
             self.last_network_check = current_time
         
-        # Try different APIs in order of preference
+        # Sort APIs by reliability (fewer recent failures first)
         apis = [
-            ('coingecko', self.get_coingecko_price),
             ('binance', self.get_binance_price),
             ('cryptocompare', self.get_cryptocompare_price),
-            ('coinbase', self.get_coinbase_price)
+            ('coinbase', self.get_coinbase_price),
+            ('coingecko', self.get_coingecko_price)
         ]
         
+        # Sort by failure count (fewer failures first)
+        apis.sort(key=lambda x: self.api_failures[x[0]])
+        
+        # Try each API with a simple retry mechanism
         for api_name, api_func in apis:
-            try:
-                price = api_func(symbol)
-                if price is not None and price > 0:
-                    return price
-            except Exception as e:
-                continue
+            for attempt in range(2):  # Try up to 2 times per API
+                try:
+                    price = api_func(symbol)
+                    if price is not None and price > 0:
+                        return price
+                    elif attempt == 0:  # Only retry if first attempt failed
+                        time.sleep(0.5)  # Brief pause before retry
+                except Exception as e:
+                    self.api_failures[api_name] += 1
+                    if attempt == 0:  # Only retry if first attempt failed
+                        time.sleep(0.5)  # Brief pause before retry
+                    continue
         
         # If all APIs fail, return None
         return None
     
+    def reset_api_failures(self):
+        """Reset API failure counts periodically to allow retry"""
+        current_time = time.time()
+        for api_name in self.api_failures:
+            # Reset failures if more than 10 minutes have passed since last success
+            if current_time - self.last_api_success[api_name] > 600:  # 10 minutes
+                self.api_failures[api_name] = max(0, self.api_failures[api_name] - 1)
+    
     def update_all_prices(self):
         """Update prices for all supported symbols"""
+        # Reset API failures periodically
+        self.reset_api_failures()
+        
         symbols = [
             'BTC', 'ETH', 'XRP', 'ADA', 'DOT', 'LINK', 'LTC', 'BCH',
             'USDT', 'USDC', 'DAI', 'UNI', 'AAVE', 'COMP', 'MKR', 'CRV',

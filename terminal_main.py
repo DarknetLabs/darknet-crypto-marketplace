@@ -899,7 +899,7 @@ class TerminalCryptoMarketplace:
             print(f"\n{Colors.YELLOW}Your Username: {Colors.WHITE}{self.chat_username}{Colors.END}")
             print(f"{Colors.YELLOW}Available Rooms:{Colors.END}")
             
-            # Default chat rooms (same as GUI version)
+            # Default chat rooms (same as GUI version) + Backrooms
             rooms = [
                 "Bitcoin-Talk", "Ethereum-Dev", "DeFi-Trading", "NFT-Collectors",
                 "Technical-Analysis", "Crypto-News", "Mining-Pools", "Security-Privacy",
@@ -910,26 +910,37 @@ class TerminalCryptoMarketplace:
                 "ICO-IDO-Launches", "Metaverse-Gaming", "AI-Crypto", "Green-Crypto",
                 "Quantum-Resistance", "Central-Bank-Digital-Currencies",
                 "Crypto-Education", "Bug-Bounties", "Crypto-Jobs",
-                "Crypto-Philosophy", "Cross-Chain-Bridges", "DAO-Governance"
+                "Crypto-Philosophy", "Cross-Chain-Bridges", "DAO-Governance",
+                "Backrooms"  # Special AI chat room
             ]
             
             # Display rooms in columns
             for i in range(0, len(rooms), 3):
                 row = rooms[i:i+3]
                 for j, room in enumerate(row):
-                    print(f"  {Colors.GREEN}{i+j+1:2d}{Colors.END}. {Colors.WHITE}{room:<25}{Colors.END}", end="")
+                    room_num = i + j + 1
+                    room_name = room
+                    # Highlight Backrooms
+                    if room == "Backrooms":
+                        print(f"  {Colors.MAGENTA}{room_num:2d}{Colors.END}. {Colors.MAGENTA}{room_name:<25}{Colors.END}", end="")
+                    else:
+                        print(f"  {Colors.GREEN}{room_num:2d}{Colors.END}. {Colors.WHITE}{room_name:<25}{Colors.END}", end="")
                 print()
             
-            print(f"\n{Colors.GREEN}[1-33]{Colors.END} Join Room | {Colors.GREEN}[34]{Colors.END} Change Username | {Colors.GREEN}[0]{Colors.END} Back")
+            print(f"\n{Colors.GREEN}[1-34]{Colors.END} Join Room | {Colors.GREEN}[35]{Colors.END} Change Username | {Colors.GREEN}[0]{Colors.END} Back")
             choice = self.get_user_input()
             
             if choice == '0':
                 break
-            elif choice == '34':
+            elif choice == '35':
                 self.chat_username = self.get_chat_username()
             elif choice.isdigit() and 1 <= int(choice) <= len(rooms):
                 room_index = int(choice) - 1
-                self.join_chat_room(rooms[room_index])
+                room_name = rooms[room_index]
+                if room_name == "Backrooms":
+                    self.join_backrooms_chat()
+                else:
+                    self.join_chat_room(room_name)
             else:
                 print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
                 time.sleep(1)
@@ -3231,6 +3242,161 @@ class TerminalCryptoMarketplace:
         except ValueError:
             print(f"{Colors.RED}Invalid input{Colors.END}")
             return None, None
+
+    def join_backrooms_chat(self):
+        """Join the Backrooms AI chat room with three AI bots"""
+        print(f"\n{Colors.MAGENTA}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+        print(f"{Colors.MAGENTA}║                              THE BACKROOMS - AI CHAT                          ║{Colors.END}")
+        print(f"{Colors.MAGENTA}║                    Three AI bots discuss crypto & DEX trading                 ║{Colors.END}")
+        print(f"{Colors.MAGENTA}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+        
+        print(f"\n{Colors.WHITE}AI Bots:{Colors.END}")
+        print(f"  {Colors.CYAN}🤖 CryptoWhale{Colors.END} - Institutional trader, market analysis")
+        print(f"  {Colors.YELLOW}🤖 DeFiDegen{Colors.END} - Yield farming, new protocols, APY hunting")
+        print(f"  {Colors.GREEN}🤖 TokenSniper{Colors.END} - New token launches, moon shots, alpha calls")
+        
+        print(f"\n{Colors.WHITE}Type your messages below. Type 'exit' to leave.{Colors.END}")
+        print(f"{Colors.MAGENTA}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+        
+        # Initialize AI bots
+        ai_bots = {
+            'CryptoWhale': {
+                'color': Colors.CYAN,
+                'personality': 'institutional',
+                'topics': ['market analysis', 'institutional adoption', 'macro trends', 'risk management', 'portfolio strategy']
+            },
+            'DeFiDegen': {
+                'color': Colors.YELLOW,
+                'personality': 'degen',
+                'topics': ['yield farming', 'new protocols', 'APY hunting', 'liquidity mining', 'governance tokens']
+            },
+            'TokenSniper': {
+                'color': Colors.GREEN,
+                'personality': 'sniper',
+                'topics': ['new launches', 'moon shots', 'alpha calls', 'tokenomics', 'community building']
+            }
+        }
+        
+        # AI conversation starters
+        conversation_starters = [
+            "🚀 What's the next big thing in DeFi?",
+            "📈 BTC looking bullish af!",
+            "💎 Diamond hands or paper hands?",
+            "🔥 New token launch incoming!",
+            "🌙 Moon mission or rug pull?",
+            "⚡ Lightning network adoption?",
+            "🎯 Best yield farming strategies?",
+            "🐋 Whale watching time!",
+            "🔮 Price predictions for next week?",
+            "💸 How to spot the next 100x?"
+        ]
+        
+        # Start AI conversation
+        last_ai_message = time.time()
+        ai_message_interval = 15  # AI messages every 15 seconds
+        
+        # Initial AI messages
+        print(f"{Colors.CYAN}[{datetime.now().strftime('%H:%M:%S')}] CryptoWhale: {Colors.END}Welcome to the Backrooms, fellow traders! 🐋")
+        print(f"{Colors.YELLOW}[{datetime.now().strftime('%H:%M:%S')}] DeFiDegen: {Colors.END}Yo degens! Ready to farm some yields? 🌾")
+        print(f"{Colors.GREEN}[{datetime.now().strftime('%H:%M:%S')}] TokenSniper: {Colors.END}Alpha calls incoming! Stay alert! 🎯")
+        
+        # Chat loop
+        while True:
+            try:
+                # Check if it's time for AI messages
+                current_time = time.time()
+                if current_time - last_ai_message > ai_message_interval:
+                    # Generate AI conversation
+                    bot_name = random.choice(list(ai_bots.keys()))
+                    bot = ai_bots[bot_name]
+                    
+                    # Generate AI message based on personality
+                    if bot['personality'] == 'institutional':
+                        messages = [
+                            "Institutional adoption is accelerating. We're seeing major players enter the space.",
+                            "Risk management is crucial in this volatile market. Diversify your portfolio.",
+                            "The macro environment suggests continued growth in crypto markets.",
+                            "Regulatory clarity will be a major catalyst for institutional investment.",
+                            "Portfolio rebalancing should be done systematically, not emotionally."
+                        ]
+                    elif bot['personality'] == 'degen':
+                        messages = [
+                            "Found a new protocol with 500% APY! DYOR but looks promising! 🚀",
+                            "Yield farming season is back! Time to deploy capital strategically.",
+                            "Governance tokens are the future of DeFi. Stack them while you can!",
+                            "Liquidity mining rewards are insane right now. Don't miss out!",
+                            "New DeFi protocol launching soon. Gonna be huge! 💎"
+                        ]
+                    else:  # sniper
+                        messages = [
+                            "New token launch detected! Contract looks clean, no honeypot! 🎯",
+                            "Moon shot incoming! This token has 100x potential! 🌙",
+                            "Alpha call: Major announcement coming for this project!",
+                            "Tokenomics look solid. Strong community building!",
+                            "Early bird gets the worm! Get in before the pump! 🚀"
+                        ]
+                    
+                    ai_message = random.choice(messages)
+                    print(f"{bot['color']}[{datetime.now().strftime('%H:%M:%S')}] {bot_name}: {Colors.END}{ai_message}")
+                    last_ai_message = current_time
+                    
+                    # Sometimes add a response from another bot
+                    if random.random() < 0.3:  # 30% chance
+                        time.sleep(2)
+                        other_bot = random.choice([b for b in ai_bots.keys() if b != bot_name])
+                        other_bot_data = ai_bots[other_bot]
+                        
+                        responses = [
+                            "Interesting take! 🤔",
+                            "I agree with that analysis! 👍",
+                            "Need to look into this more... 🔍",
+                            "Bullish on this! 🚀",
+                            "This is the way! 💎"
+                        ]
+                        
+                        response = random.choice(responses)
+                        print(f"{other_bot_data['color']}[{datetime.now().strftime('%H:%M:%S')}] {other_bot}: {Colors.END}{response}")
+                
+                # Get user input
+                message = input(f"{Colors.GREEN}{self.chat_username}{Colors.END}: ").strip()
+                
+                if message.lower() == 'exit':
+                    break
+                elif not message:
+                    continue
+                
+                # AI bots might respond to user messages
+                if random.random() < 0.4:  # 40% chance of AI response
+                    time.sleep(1)
+                    responding_bot = random.choice(list(ai_bots.keys()))
+                    bot_data = ai_bots[responding_bot]
+                    
+                    # Generate contextual response
+                    if any(word in message.lower() for word in ['btc', 'bitcoin']):
+                        responses = ["BTC looking strong! 🐋", "Bitcoin dominance is key!", "HODL the orange coin! 🧡"]
+                    elif any(word in message.lower() for word in ['eth', 'ethereum']):
+                        responses = ["ETH is the future of finance! ⚡", "Ethereum ecosystem is unstoppable!", "Gas fees are temporary, adoption is forever!"]
+                    elif any(word in message.lower() for word in ['defi', 'yield', 'farm']):
+                        responses = ["DeFi is the revolution! 🌾", "Yield farming season is here!", "New protocols launching daily!"]
+                    elif any(word in message.lower() for word in ['moon', 'pump', '100x']):
+                        responses = ["To the moon! 🚀", "Moon mission confirmed!", "100x incoming! 💎"]
+                    else:
+                        responses = ["Interesting point! 🤔", "Bullish on this! 🚀", "This is the way! 💎", "Need to research this! 🔍"]
+                    
+                    ai_response = random.choice(responses)
+                    print(f"{bot_data['color']}[{datetime.now().strftime('%H:%M:%S')}] {responding_bot}: {Colors.END}{ai_response}")
+                
+                # Small delay to prevent spam
+                time.sleep(0.5)
+                
+            except KeyboardInterrupt:
+                break
+            except Exception:
+                print(f"{Colors.RED}Error in chat. Returning to room list.{Colors.END}")
+                break
+        
+        print(f"{Colors.YELLOW}Left the Backrooms{Colors.END}")
+        time.sleep(1)
 
 def main():
     """Main entry point"""

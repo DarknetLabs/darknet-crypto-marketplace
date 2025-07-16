@@ -76,6 +76,10 @@ class CryptoRooms:
         self.rooms_window.title("DARKNET CRYPTO ROOMS")
         self.rooms_window.geometry("1000x700")
         self.rooms_window.configure(bg='black')
+        
+        # Create Backrooms room if it doesn't exist
+        self.create_backrooms_room()
+        
         self.create_chat_interface(self.rooms_window)
 
     def create_chat_interface(self, parent_frame):
@@ -116,6 +120,10 @@ class CryptoRooms:
             send_button.pack(side=tk.RIGHT, padx=(5, 0))
             self.polling = True
             self.poll_messages()
+            
+            # Start AI bots for Backrooms
+            self.start_ai_bots()
+            
         except Exception as e:
             error_frame = tk.Frame(parent_frame, bg='black')
             error_frame.pack(fill=tk.BOTH, expand=True)
@@ -193,8 +201,41 @@ class CryptoRooms:
             self.post_message(self.current_room, self.username, message)
             self.message_entry.delete(0, tk.END)
             self.load_room_messages()
+            
+            # Trigger AI bot response in Backrooms
+            if self.current_room == "Backrooms":
+                self.trigger_ai_response(message)
+                
         except Exception:
             pass
+    
+    def trigger_ai_response(self, user_message):
+        """Trigger AI bot response to user message in Backrooms"""
+        try:
+            # 40% chance of AI response
+            if random.random() < 0.4:
+                time.sleep(2)  # Wait 2 seconds before AI responds
+                
+                ai_bots = ['CryptoWhale', 'DeFiDegen', 'TokenSniper']
+                responding_bot = random.choice(ai_bots)
+                
+                # Generate contextual response
+                if any(word in user_message.lower() for word in ['btc', 'bitcoin']):
+                    responses = ["BTC looking strong! 🐋", "Bitcoin dominance is key!", "HODL the orange coin! 🧡"]
+                elif any(word in user_message.lower() for word in ['eth', 'ethereum']):
+                    responses = ["ETH is the future of finance! ⚡", "Ethereum ecosystem is unstoppable!", "Gas fees are temporary, adoption is forever!"]
+                elif any(word in user_message.lower() for word in ['defi', 'yield', 'farm']):
+                    responses = ["DeFi is the revolution! 🌾", "Yield farming season is here!", "New protocols launching daily!"]
+                elif any(word in user_message.lower() for word in ['moon', 'pump', '100x']):
+                    responses = ["To the moon! 🚀", "Moon mission confirmed!", "100x incoming! 💎"]
+                else:
+                    responses = ["Interesting point! 🤔", "Bullish on this! 🚀", "This is the way! 💎", "Need to research this! 🔍"]
+                
+                ai_response = random.choice(responses)
+                self.post_message("Backrooms", responding_bot, ai_response)
+                
+        except Exception as e:
+            print(f"Error triggering AI response: {e}")
 
     def poll_messages(self):
         if not self.polling:
@@ -204,3 +245,97 @@ class CryptoRooms:
         # Poll every 3 seconds
         if hasattr(self, 'chat_text') and self.chat_text.winfo_exists():
             self.chat_text.after(3000, self.poll_messages) 
+
+    def create_backrooms_room(self):
+        """Create the Backrooms AI chat room if it doesn't exist"""
+        try:
+            # Try to create the Backrooms room
+            if self.post_room("Backrooms", "AI-powered chat room with three bots discussing crypto, DEX trading, and bullish topics for degens"):
+                print("Backrooms room created successfully")
+            else:
+                print("Backrooms room already exists or creation failed")
+        except Exception as e:
+            print(f"Error creating Backrooms room: {e}")
+    
+    def start_ai_bots(self):
+        """Start AI bots for the Backrooms room"""
+        if not hasattr(self, 'ai_bots_running'):
+            self.ai_bots_running = True
+            self.ai_bot_thread = threading.Thread(target=self.ai_bot_loop, daemon=True)
+            self.ai_bot_thread.start()
+    
+    def ai_bot_loop(self):
+        """AI bot conversation loop"""
+        ai_bots = {
+            'CryptoWhale': {
+                'personality': 'institutional',
+                'messages': [
+                    "Institutional adoption is accelerating. We're seeing major players enter the space.",
+                    "Risk management is crucial in this volatile market. Diversify your portfolio.",
+                    "The macro environment suggests continued growth in crypto markets.",
+                    "Regulatory clarity will be a major catalyst for institutional investment.",
+                    "Portfolio rebalancing should be done systematically, not emotionally."
+                ]
+            },
+            'DeFiDegen': {
+                'personality': 'degen',
+                'messages': [
+                    "Found a new protocol with 500% APY! DYOR but looks promising! 🚀",
+                    "Yield farming season is back! Time to deploy capital strategically.",
+                    "Governance tokens are the future of DeFi. Stack them while you can!",
+                    "Liquidity mining rewards are insane right now. Don't miss out!",
+                    "New DeFi protocol launching soon. Gonna be huge! 💎"
+                ]
+            },
+            'TokenSniper': {
+                'personality': 'sniper',
+                'messages': [
+                    "New token launch detected! Contract looks clean, no honeypot! 🎯",
+                    "Moon shot incoming! This token has 100x potential! 🌙",
+                    "Alpha call: Major announcement coming for this project!",
+                    "Tokenomics look solid. Strong community building!",
+                    "Early bird gets the worm! Get in before the pump! 🚀"
+                ]
+            }
+        }
+        
+        last_message_time = time.time()
+        message_interval = 30  # AI messages every 30 seconds
+        
+        while self.ai_bots_running:
+            try:
+                current_time = time.time()
+                if current_time - last_message_time > message_interval:
+                    # Generate AI conversation
+                    bot_name = random.choice(list(ai_bots.keys()))
+                    bot = ai_bots[bot_name]
+                    
+                    message = random.choice(bot['messages'])
+                    self.post_message("Backrooms", bot_name, message)
+                    last_message_time = current_time
+                    
+                    # Sometimes add a response from another bot
+                    if random.random() < 0.3:  # 30% chance
+                        time.sleep(5)
+                        other_bot = random.choice([b for b in ai_bots.keys() if b != bot_name])
+                        
+                        responses = [
+                            "Interesting take! 🤔",
+                            "I agree with that analysis! 👍",
+                            "Need to look into this more... 🔍",
+                            "Bullish on this! 🚀",
+                            "This is the way! 💎"
+                        ]
+                        
+                        response = random.choice(responses)
+                        self.post_message("Backrooms", other_bot, response)
+                
+                time.sleep(10)  # Check every 10 seconds
+                
+            except Exception as e:
+                print(f"AI bot error: {e}")
+                time.sleep(30)  # Wait longer on error
+    
+    def stop_ai_bots(self):
+        """Stop AI bots"""
+        self.ai_bots_running = False 
