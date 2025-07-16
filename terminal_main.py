@@ -2264,7 +2264,8 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
             
             print(f"\n{Colors.RED}⚠️  WARNING: This is a REAL marketplace with REAL ETH transactions! ⚠️{Colors.END}")
-            print(f"{Colors.WHITE}All transactions use smart contract escrow for security.{Colors.END}")
+            print(f"{Colors.WHITE}All transactions use direct ETH transfers (no escrow).{Colors.END}")
+            print(f"{Colors.WHITE}ETH is sent directly from buyer to seller.{Colors.END}")
             
             print(f"\n{Colors.GREEN}[1]{Colors.END} Browse Listings")
             print(f"{Colors.GREEN}[2]{Colors.END} Create New Listing")
@@ -2438,7 +2439,7 @@ class TerminalCryptoMarketplace:
                 for i, image in enumerate(listing['images'], 1):
                     print(f"  {i}. {image}")
             
-            print(f"\n{Colors.GREEN}[1]{Colors.END} Buy Now (Escrow)")
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Buy Now (Direct ETH Transfer)")
             print(f"{Colors.GREEN}[2]{Colors.END} Contact Seller")
             print(f"{Colors.GREEN}[3]{Colors.END} Report Listing")
             print(f"{Colors.GREEN}[0]{Colors.END} Back")
@@ -2455,7 +2456,7 @@ class TerminalCryptoMarketplace:
                 self.report_listing(listing)
     
     def buy_listing(self, listing):
-        """Purchase a listing using escrow"""
+        """Purchase a listing with direct ETH transfer"""
         print(f"\n{Colors.YELLOW}PURCHASE LISTING{Colors.END}")
         print(f"{Colors.WHITE}Title: {listing['title']}{Colors.END}")
         print(f"{Colors.WHITE}Price: {listing['price']} ETH{Colors.END}")
@@ -2476,83 +2477,105 @@ class TerminalCryptoMarketplace:
             input("Press Enter to continue...")
             return
         
-        print(f"\n{Colors.YELLOW}ESCROW TRANSACTION DETAILS:{Colors.END}")
+        print(f"\n{Colors.YELLOW}DIRECT TRANSFER DETAILS:{Colors.END}")
         print(f"{Colors.WHITE}Buyer: {buyer_address}{Colors.END}")
         print(f"{Colors.WHITE}Seller: {listing['seller_address']}{Colors.END}")
         print(f"{Colors.WHITE}Amount: {listing['price']} ETH{Colors.END}")
-        print(f"{Colors.WHITE}Escrow Fee: 0.01 ETH{Colors.END}")
-        print(f"{Colors.WHITE}Total: {listing['price'] + 0.01} ETH{Colors.END}")
+        print(f"{Colors.WHITE}Gas Fee: ~0.001-0.005 ETH (estimated){Colors.END}")
+        print(f"{Colors.WHITE}Total: ~{listing['price'] + 0.005:.6f} ETH (including gas){Colors.END}")
         
-        confirm = self.get_user_input("Type 'CONFIRM' to proceed with escrow purchase: ")
+        print(f"\n{Colors.RED}⚠️  WARNING: This is a REAL ETH transaction! ⚠️{Colors.END}")
+        print(f"{Colors.WHITE}ETH will be sent directly to the seller.{Colors.END}")
+        print(f"{Colors.WHITE}Make sure you trust the seller before proceeding.{Colors.END}")
+        
+        confirm = self.get_user_input("Type 'CONFIRM' to proceed with direct purchase: ")
         if confirm != 'CONFIRM':
             print(f"{Colors.YELLOW}Purchase cancelled{Colors.END}")
             input("Press Enter to continue...")
             return
         
-        # Execute escrow transaction
-        success, tx_hash = self.execute_escrow_purchase(listing, buyer_address, private_key)
+        # Execute real ETH transaction
+        success, tx_hash = self.execute_real_purchase(listing, buyer_address, private_key)
         
         if success:
-            print(f"{Colors.GREEN}✅ Escrow transaction successful!{Colors.END}")
+            print(f"{Colors.GREEN}✅ ETH transaction successful!{Colors.END}")
             print(f"{Colors.WHITE}Transaction Hash: {tx_hash}{Colors.END}")
-            print(f"{Colors.WHITE}Funds are now held in escrow.{Colors.END}")
-            print(f"{Colors.WHITE}Seller will be notified to ship the item.{Colors.END}")
-            
-            # Update listing status
-            self.update_listing_status(listing['id'], 'SOLD')
+            print(f"{Colors.WHITE}ETH has been sent directly to the seller.{Colors.END}")
+            print(f"{Colors.WHITE}Contact the seller to arrange item delivery.{Colors.END}")
             
         else:
-            print(f"{Colors.RED}❌ Escrow transaction failed!{Colors.END}")
+            print(f"{Colors.RED}❌ ETH transaction failed!{Colors.END}")
             print(f"{Colors.WHITE}Error: {tx_hash}{Colors.END}")
         
         input("Press Enter to continue...")
     
-    def execute_escrow_purchase(self, listing, buyer_address, private_key):
-        """Execute escrow purchase transaction"""
+    def execute_real_purchase(self, listing, buyer_address, private_key):
+        """Execute real ETH purchase transaction (direct transfer)"""
         try:
-            # Escrow contract address (simulated for demo)
-            escrow_address = "0x1234567890123456789012345678901234567890"
+            # Check buyer balance
+            balance = self.web3.eth.get_balance(buyer_address)
+            required_amount = self.web3.to_wei(listing['price'], 'ether')
             
-            # Create escrow transaction
-            escrow_data = {
-                'listing_id': listing['id'],
-                'buyer': buyer_address,
-                'seller': listing['seller_address'],
-                'amount': listing['price'],
-                'escrow_fee': 0.01
-            }
+            if balance < required_amount:
+                return False, "Insufficient balance"
             
-            # Build transaction
+            # Calculate gas price (use current network gas price)
+            gas_price = self.web3.eth.gas_price
+            
+            # Estimate gas for ETH transfer
+            gas_limit = 21000  # Standard ETH transfer gas limit
+            
+            # Calculate total cost including gas
+            gas_cost = gas_price * gas_limit
+            total_cost = required_amount + gas_cost
+            
+            if balance < total_cost:
+                return False, f"Insufficient balance. Need {self.web3.from_wei(total_cost, 'ether')} ETH (including gas)"
+            
+            # Build direct ETH transfer transaction
             tx = {
                 'from': buyer_address,
-                'to': escrow_address,
-                'value': self.web3.to_wei(listing['price'] + 0.01, 'ether'),
-                'gas': 200000,
-                'gasPrice': self.web3.to_wei('30', 'gwei'),
+                'to': listing['seller_address'],  # Direct transfer to seller
+                'value': required_amount,
+                'gas': gas_limit,
+                'gasPrice': gas_price,
                 'nonce': self.web3.eth.get_transaction_count(buyer_address),
-                'data': self.web3.to_hex(escrow_data)
+                'data': b''  # No data for simple ETH transfer
             }
             
-            # Sign and send transaction
+            # Sign transaction
             signed = self.web3.eth.account.sign_transaction(tx, private_key)
+            
+            # Send transaction
             tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
             
-            # Log escrow transaction
-            self.log_escrow_transaction({
-                'listing_id': listing['id'],
-                'buyer': buyer_address,
-                'seller': listing['seller_address'],
-                'amount': listing['price'],
-                'escrow_fee': 0.01,
-                'tx_hash': self.web3.to_hex(tx_hash),
-                'status': 'PENDING',
-                'timestamp': datetime.now().isoformat()
-            })
+            # Wait for transaction confirmation
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
             
-            return True, self.web3.to_hex(tx_hash)
-            
+            if receipt['status'] == 1:
+                # Transaction successful
+                self.log_escrow_transaction({
+                    'listing_id': listing['id'],
+                    'buyer': buyer_address,
+                    'seller': listing['seller_address'],
+                    'amount': listing['price'],
+                    'gas_used': receipt['gasUsed'],
+                    'gas_price': self.web3.from_wei(gas_price, 'gwei'),
+                    'tx_hash': self.web3.to_hex(tx_hash),
+                    'block_number': receipt['blockNumber'],
+                    'status': 'CONFIRMED',
+                    'timestamp': datetime.now().isoformat()
+                })
+                
+                # Update listing status
+                self.update_listing_status(listing['id'], 'SOLD')
+                
+                return True, self.web3.to_hex(tx_hash)
+            else:
+                return False, "Transaction failed"
+                
         except Exception as e:
-            return False, str(e)
+            return False, f"Transaction error: {str(e)}"
     
     def create_listing(self):
         """Create a new marketplace listing"""
