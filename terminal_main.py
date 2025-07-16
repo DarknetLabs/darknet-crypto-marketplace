@@ -1317,22 +1317,39 @@ class TerminalCryptoMarketplace:
         return pools
 
     def uniswap_swap(self):
-        """Execute Uniswap token swap"""
-        print(f"\n{Colors.YELLOW}UNISWAP SWAP{Colors.END}")
+        """Execute Uniswap token swap with contract addresses"""
+        print(f"\n{Colors.YELLOW}UNISWAP TOKEN SWAP{Colors.END}")
+        print(f"{Colors.WHITE}Simple token swapping using contract addresses{Colors.END}")
         
-        # Get token pairs
-        token0 = self.get_user_input("Enter token to swap FROM (e.g., ETH): ").upper()
-        token1 = self.get_user_input("Enter token to swap TO (e.g., USDC): ").upper()
+        print(f"\n{Colors.GREEN}[1]{Colors.END} Buy Token (ETH → Token)")
+        print(f"{Colors.GREEN}[2]{Colors.END} Sell Token (Token → ETH)")
+        print(f"{Colors.GREEN}[0]{Colors.END} Back")
         
-        if not token0 or not token1:
-            print(f"{Colors.RED}Invalid token pair{Colors.END}")
+        choice = self.get_user_input()
+        
+        if choice == '1':
+            self.buy_token_uniswap()
+        elif choice == '2':
+            self.sell_token_uniswap()
+        elif choice == '0':
+            return
+
+    def buy_token_uniswap(self):
+        """Buy token with ETH using Uniswap"""
+        print(f"\n{Colors.YELLOW}BUY TOKEN WITH ETH{Colors.END}")
+        
+        # Get token contract address
+        contract_address = self.get_user_input("Enter token contract address: ").strip()
+        
+        if not contract_address or not contract_address.startswith('0x'):
+            print(f"{Colors.RED}Invalid contract address{Colors.END}")
             input("Press Enter to continue...")
             return
         
-        # Get amount
+        # Get ETH amount
         try:
-            amount = float(self.get_user_input(f"Enter amount of {token0} to swap: "))
-            if amount <= 0:
+            eth_amount = float(self.get_user_input("Enter ETH amount to spend: "))
+            if eth_amount <= 0:
                 print(f"{Colors.RED}Amount must be positive{Colors.END}")
                 input("Press Enter to continue...")
                 return
@@ -1341,29 +1358,103 @@ class TerminalCryptoMarketplace:
             input("Press Enter to continue...")
             return
         
-        # Calculate swap
-        swap_result = self.calculate_uniswap_swap(token0, token1, amount)
+        # Get token info
+        token_info = self.get_token_info(contract_address)
+        if not token_info:
+            print(f"{Colors.RED}Could not fetch token information{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.CYAN}TOKEN INFO:{Colors.END}")
+        print(f"  Name: {token_info['name']}")
+        print(f"  Symbol: {token_info['symbol']}")
+        print(f"  Decimals: {token_info['decimals']}")
+        print(f"  Buy Tax: {token_info['buy_tax']}%")
+        print(f"  Sell Tax: {token_info['sell_tax']}%")
+        
+        # Calculate swap with taxes
+        swap_result = self.calculate_swap_with_taxes(contract_address, eth_amount, token_info)
         
         if swap_result:
-            output_amount = swap_result['output_amount']
+            tokens_received = swap_result['tokens_received']
             price_impact = swap_result['price_impact']
-            fee = swap_result['fee']
             gas_estimate = swap_result['gas_estimate']
             
             print(f"\n{Colors.CYAN}SWAP PREVIEW:{Colors.END}")
-            print(f"  Input: {amount:.6f} {token0}")
-            print(f"  Output: {output_amount:.6f} {token1}")
+            print(f"  ETH Spent: {eth_amount:.6f} ETH")
+            print(f"  Tokens Received: {tokens_received:.6f} {token_info['symbol']}")
             print(f"  Price Impact: {Colors.RED if price_impact > 1 else Colors.GREEN}{price_impact:.2f}%{Colors.END}")
-            print(f"  Fee: ${fee:.2f}")
             print(f"  Gas Estimate: {gas_estimate:,} GWEI")
             
-            confirm = self.get_user_input("\nExecute swap? (y/N): ").lower()
+            confirm = self.get_user_input("\nExecute buy? (y/N): ").lower()
             if confirm == 'y':
-                self.execute_uniswap_swap(token0, token1, amount, output_amount, fee)
+                self.execute_token_swap(contract_address, eth_amount, swap_result, token_info)
             else:
-                print(f"{Colors.YELLOW}Swap cancelled{Colors.END}")
+                print(f"{Colors.YELLOW}Buy cancelled{Colors.END}")
         else:
-            print(f"{Colors.RED}Swap calculation failed. Check token pair and liquidity.{Colors.END}")
+            print(f"{Colors.RED}Swap calculation failed. Check liquidity and contract.{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def sell_token_uniswap(self):
+        """Sell token for ETH using Uniswap"""
+        print(f"\n{Colors.YELLOW}SELL TOKEN FOR ETH{Colors.END}")
+        
+        # Get token contract address
+        contract_address = self.get_user_input("Enter token contract address: ").strip()
+        
+        if not contract_address or not contract_address.startswith('0x'):
+            print(f"{Colors.RED}Invalid contract address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get token amount
+        try:
+            token_amount = float(self.get_user_input("Enter token amount to sell: "))
+            if token_amount <= 0:
+                print(f"{Colors.RED}Amount must be positive{Colors.END}")
+                input("Press Enter to continue...")
+                return
+        except ValueError:
+            print(f"{Colors.RED}Invalid amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get token info
+        token_info = self.get_token_info(contract_address)
+        if not token_info:
+            print(f"{Colors.RED}Could not fetch token information{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.CYAN}TOKEN INFO:{Colors.END}")
+        print(f"  Name: {token_info['name']}")
+        print(f"  Symbol: {token_info['symbol']}")
+        print(f"  Decimals: {token_info['decimals']}")
+        print(f"  Buy Tax: {token_info['buy_tax']}%")
+        print(f"  Sell Tax: {token_info['sell_tax']}%")
+        
+        # Calculate sell with taxes
+        sell_result = self.calculate_sell_with_taxes(contract_address, token_amount, token_info)
+        
+        if sell_result:
+            eth_received = sell_result['eth_received']
+            price_impact = sell_result['price_impact']
+            gas_estimate = sell_result['gas_estimate']
+            
+            print(f"\n{Colors.CYAN}SELL PREVIEW:{Colors.END}")
+            print(f"  Tokens Sold: {token_amount:.6f} {token_info['symbol']}")
+            print(f"  ETH Received: {eth_received:.6f} ETH")
+            print(f"  Price Impact: {Colors.RED if price_impact > 1 else Colors.GREEN}{price_impact:.2f}%{Colors.END}")
+            print(f"  Gas Estimate: {gas_estimate:,} GWEI")
+            
+            confirm = self.get_user_input("\nExecute sell? (y/N): ").lower()
+            if confirm == 'y':
+                self.execute_token_sell(contract_address, token_amount, sell_result, token_info)
+            else:
+                print(f"{Colors.YELLOW}Sell cancelled{Colors.END}")
+        else:
+            print(f"{Colors.RED}Sell calculation failed. Check liquidity and contract.{Colors.END}")
         
         input("Press Enter to continue...")
 
