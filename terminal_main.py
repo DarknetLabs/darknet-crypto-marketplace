@@ -3248,11 +3248,15 @@ class TerminalCryptoMarketplace:
             return None, None
 
     def join_backrooms_chat(self):
-        """Join the Backrooms AI chat room with live AI models (Gemini, GPT, Claude)"""
+        """Join the Backrooms AI chat room - AI-exclusive (observers only)"""
         print(f"\n{Colors.MAGENTA}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
-        print(f"{Colors.MAGENTA}║                              THE BACKROOMS - LIVE AI CHAT                     ║{Colors.END}")
-        print(f"{Colors.MAGENTA}║                    Gemini • GPT • Claude discuss crypto & trading             ║{Colors.END}")
+        print(f"{Colors.MAGENTA}║                              THE BACKROOMS - AI-ONLY CHAT                     ║{Colors.END}")
+        print(f"{Colors.MAGENTA}║                    Gemini • GPT • Claude discuss live market data            ║{Colors.END}")
         print(f"{Colors.MAGENTA}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+        
+        print(f"\n{Colors.YELLOW}⚠️  AI-EXCLUSIVE CHAT ROOM{Colors.END}")
+        print(f"{Colors.WHITE}Only AI models can speak here. Users are observers only.{Colors.END}")
+        print(f"{Colors.WHITE}The AIs discuss real-time crypto data, tweets, and market sentiment.{Colors.END}")
         
         # Check available AI models
         available_models = self.ai_service.get_available_models()
@@ -3271,8 +3275,13 @@ class TerminalCryptoMarketplace:
             else:
                 print(f"  {Colors.RED}❌ {model}{Colors.END} - API key not configured")
         
-        print(f"\n{Colors.WHITE}Type your messages below. Type 'exit' to leave.{Colors.END}")
+        print(f"\n{Colors.WHITE}Press Enter to observe AI conversations. Type 'exit' to leave.{Colors.END}")
         print(f"{Colors.MAGENTA}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+        
+        # Show current market context
+        market_context = self.ai_service.get_market_context()
+        print(f"{Colors.CYAN}📊 Current Market Context: {Colors.END}{market_context}")
+        print(f"{Colors.MAGENTA}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
         
         # Initial AI messages
         if available_models:
@@ -3288,9 +3297,11 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.CYAN}[{datetime.now().strftime('%H:%M:%S')}] Gemini: {Colors.END}Welcome to the Backrooms! Let's discuss the future of crypto! 🚀")
             print(f"{Colors.MAGENTA}[{datetime.now().strftime('%H:%M:%S')}] GPT: {Colors.END}Excited to explore DeFi innovations with you all! 💡")
         
-        # Chat loop
+        # Chat loop - AI only
         last_ai_conversation = time.time()
-        ai_conversation_interval = 45  # AI conversations every 45 seconds
+        ai_conversation_interval = 30  # AI conversations every 30 seconds
+        last_market_update = time.time()
+        market_update_interval = 60  # Update market context every 60 seconds
         
         while True:
             try:
@@ -3309,27 +3320,34 @@ class TerminalCryptoMarketplace:
                         
                         last_ai_conversation = current_time
                 
-                # Get user input
-                message = input(f"{Colors.GREEN}{self.chat_username}{Colors.END}: ").strip()
+                # Update market context periodically
+                if current_time - last_market_update > market_update_interval:
+                    new_market_context = self.ai_service.get_market_context()
+                    if new_market_context != market_context:
+                        print(f"\n{Colors.CYAN}📊 Market Update: {Colors.END}{new_market_context}")
+                        market_context = new_market_context
+                        last_market_update = current_time
                 
-                if message.lower() == 'exit':
-                    break
-                elif not message:
-                    continue
+                # Get user input (only for exit command)
+                try:
+                    # Use a non-blocking input method
+                    if os.name == 'nt':  # Windows
+                        import msvcrt
+                        if msvcrt.kbhit():
+                            key = msvcrt.getch().decode('utf-8').lower()
+                            if key == 'q':
+                                break
+                    else:  # Unix/Linux
+                        import select
+                        if select.select([sys.stdin], [], [], 0.1)[0]:
+                            line = sys.stdin.readline().strip().lower()
+                            if line == 'exit' or line == 'q':
+                                break
+                except:
+                    pass
                 
-                # AI models respond to user messages
-                if available_models and random.random() < 0.6:  # 60% chance of AI response
-                    time.sleep(1)
-                    responding_model = random.choice(available_models)
-                    ai_response = self.ai_service.get_ai_response(responding_model, message, f"User {self.chat_username} said: {message}")
-                    
-                    if ai_response:
-                        personality = self.ai_service.get_model_personality(responding_model)
-                        color = personality.get('color', Colors.WHITE)
-                        print(f"{color}[{datetime.now().strftime('%H:%M:%S')}] {responding_model}: {Colors.END}{ai_response}")
-                
-                # Small delay to prevent spam
-                time.sleep(0.5)
+                # Small delay to prevent high CPU usage
+                time.sleep(1)
                 
             except KeyboardInterrupt:
                 break

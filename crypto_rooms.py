@@ -202,83 +202,31 @@ class CryptoRooms:
             message = self.message_entry.get().strip()
             if not message:
                 return
+            
+            # Prevent user messages in AI-exclusive Backrooms
+            if self.current_room == "Backrooms":
+                messagebox.showinfo("AI-Exclusive Room", "The Backrooms is an AI-exclusive chat room. Only AI models can speak here. Users are observers only.")
+                self.message_entry.delete(0, tk.END)
+                return
+            
             self.post_message(self.current_room, self.username, message)
             self.message_entry.delete(0, tk.END)
             self.load_room_messages()
-            
-            # Trigger AI bot response in Backrooms
-            if self.current_room == "Backrooms":
-                self.trigger_ai_response(message)
                 
         except Exception:
             pass
     
     def trigger_ai_response(self, user_message):
-        """Trigger AI bot response to user message in Backrooms using live AI models"""
-        try:
-            # 60% chance of AI response
-            if random.random() < 0.6:
-                time.sleep(2)  # Wait 2 seconds before AI responds
-                
-                # Get available AI models
-                available_models = self.ai_service.get_available_models()
-                
-                if available_models:
-                    # Use live AI model
-                    responding_model = random.choice(available_models)
-                    ai_response = self.ai_service.get_ai_response(
-                        responding_model, 
-                        user_message, 
-                        f"User {self.username} said: {user_message}"
-                    )
-                    
-                    if ai_response:
-                        self.post_message("Backrooms", responding_model, ai_response)
-                else:
-                    # Fallback response
-                    self.post_fallback_response(user_message)
-                
-        except Exception as e:
-            print(f"Error triggering AI response: {e}")
-            # Fallback response on error
-            self.post_fallback_response(user_message)
+        """AI-exclusive Backrooms - no user responses allowed"""
+        # In the AI-exclusive Backrooms, users cannot send messages
+        # This method is kept for compatibility but does nothing
+        pass
     
     def post_fallback_response(self, user_message):
-        """Post fallback response when live AI models are unavailable"""
-        # Generate contextual fallback response
-        if any(word in user_message.lower() for word in ['btc', 'bitcoin']):
-            responses = [
-                ("Gemini", "BTC looking strong! Institutional adoption continues! 🐋"),
-                ("GPT", "Bitcoin dominance is key to the ecosystem! 🧡"),
-                ("Claude", "Bitcoin fundamentals remain solid. HODL! 💎")
-            ]
-        elif any(word in user_message.lower() for word in ['eth', 'ethereum']):
-            responses = [
-                ("Gemini", "ETH is the foundation of DeFi! ⚡"),
-                ("GPT", "Ethereum ecosystem is unstoppable! 🔥"),
-                ("Claude", "ETH's utility continues to grow. Bullish! 📈")
-            ]
-        elif any(word in user_message.lower() for word in ['defi', 'yield', 'farm']):
-            responses = [
-                ("Gemini", "DeFi is revolutionizing finance! 🌾"),
-                ("GPT", "Yield farming opportunities are everywhere! 💰"),
-                ("Claude", "DeFi protocols are maturing beautifully! 🚀")
-            ]
-        elif any(word in user_message.lower() for word in ['moon', 'pump', '100x']):
-            responses = [
-                ("Gemini", "Moon mission confirmed! 🚀"),
-                ("GPT", "100x potential is real! 💎"),
-                ("Claude", "Sustainable growth beats quick pumps! 📊")
-            ]
-        else:
-            responses = [
-                ("Gemini", "Interesting point! The crypto space is evolving rapidly! 🤔"),
-                ("GPT", "Bullish on this analysis! Innovation never stops! 🚀"),
-                ("Claude", "This is the way! Long-term thinking wins! 💎")
-            ]
-        
-        bot_name, response = random.choice(responses)
-        self.post_message("Backrooms", bot_name, response)
+        """AI-exclusive Backrooms - no user responses allowed"""
+        # In the AI-exclusive Backrooms, users cannot send messages
+        # This method is kept for compatibility but does nothing
+        pass
 
     def poll_messages(self):
         if not self.polling:
