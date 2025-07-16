@@ -1358,41 +1358,31 @@ class TerminalCryptoMarketplace:
             input("Press Enter to continue...")
             return
         
-        # Get token info
+        # Get token info and show preview
         token_info = self.get_token_info(contract_address)
         if not token_info:
             print(f"{Colors.RED}Could not fetch token information{Colors.END}")
             input("Press Enter to continue...")
             return
         
-        print(f"\n{Colors.CYAN}TOKEN INFO:{Colors.END}")
-        print(f"  Name: {token_info['name']}")
-        print(f"  Symbol: {token_info['symbol']}")
-        print(f"  Decimals: {token_info['decimals']}")
-        print(f"  Buy Tax: {token_info['buy_tax']}%")
-        print(f"  Sell Tax: {token_info['sell_tax']}%")
+        print(f"\n{Colors.CYAN}TOKEN: {token_info['name']} ({token_info['symbol']}){Colors.END}")
+        print(f"{Colors.WHITE}Buy Tax: {token_info['buy_tax']}% | Sell Tax: {token_info['sell_tax']}%{Colors.END}")
         
-        # Calculate swap with taxes
+        # Calculate swap
         swap_result = self.calculate_swap_with_taxes(contract_address, eth_amount, token_info)
         
         if swap_result:
-            tokens_received = swap_result['tokens_received']
-            price_impact = swap_result['price_impact']
-            gas_estimate = swap_result['gas_estimate']
+            print(f"\n{Colors.CYAN}PREVIEW:{Colors.END}")
+            print(f"  ETH: {eth_amount:.6f} → {swap_result['tokens_received']:.6f} {token_info['symbol']}")
+            print(f"  Price Impact: {swap_result['price_impact']:.2f}%")
             
-            print(f"\n{Colors.CYAN}SWAP PREVIEW:{Colors.END}")
-            print(f"  ETH Spent: {eth_amount:.6f} ETH")
-            print(f"  Tokens Received: {tokens_received:.6f} {token_info['symbol']}")
-            print(f"  Price Impact: {Colors.RED if price_impact > 1 else Colors.GREEN}{price_impact:.2f}%{Colors.END}")
-            print(f"  Gas Estimate: {gas_estimate:,} GWEI")
-            
-            confirm = self.get_user_input("\nExecute buy? (y/N): ").lower()
+            confirm = self.get_user_input("Execute buy? (y/N): ").lower()
             if confirm == 'y':
                 self.execute_token_swap(contract_address, eth_amount, swap_result, token_info)
             else:
                 print(f"{Colors.YELLOW}Buy cancelled{Colors.END}")
         else:
-            print(f"{Colors.RED}Swap calculation failed. Check liquidity and contract.{Colors.END}")
+            print(f"{Colors.RED}Swap failed. Check liquidity.{Colors.END}")
         
         input("Press Enter to continue...")
 
@@ -1420,41 +1410,31 @@ class TerminalCryptoMarketplace:
             input("Press Enter to continue...")
             return
         
-        # Get token info
+        # Get token info and show preview
         token_info = self.get_token_info(contract_address)
         if not token_info:
             print(f"{Colors.RED}Could not fetch token information{Colors.END}")
             input("Press Enter to continue...")
             return
         
-        print(f"\n{Colors.CYAN}TOKEN INFO:{Colors.END}")
-        print(f"  Name: {token_info['name']}")
-        print(f"  Symbol: {token_info['symbol']}")
-        print(f"  Decimals: {token_info['decimals']}")
-        print(f"  Buy Tax: {token_info['buy_tax']}%")
-        print(f"  Sell Tax: {token_info['sell_tax']}%")
+        print(f"\n{Colors.CYAN}TOKEN: {token_info['name']} ({token_info['symbol']}){Colors.END}")
+        print(f"{Colors.WHITE}Buy Tax: {token_info['buy_tax']}% | Sell Tax: {token_info['sell_tax']}%{Colors.END}")
         
-        # Calculate sell with taxes
+        # Calculate sell
         sell_result = self.calculate_sell_with_taxes(contract_address, token_amount, token_info)
         
         if sell_result:
-            eth_received = sell_result['eth_received']
-            price_impact = sell_result['price_impact']
-            gas_estimate = sell_result['gas_estimate']
+            print(f"\n{Colors.CYAN}PREVIEW:{Colors.END}")
+            print(f"  {token_info['symbol']}: {token_amount:.6f} → {sell_result['eth_received']:.6f} ETH")
+            print(f"  Price Impact: {sell_result['price_impact']:.2f}%")
             
-            print(f"\n{Colors.CYAN}SELL PREVIEW:{Colors.END}")
-            print(f"  Tokens Sold: {token_amount:.6f} {token_info['symbol']}")
-            print(f"  ETH Received: {eth_received:.6f} ETH")
-            print(f"  Price Impact: {Colors.RED if price_impact > 1 else Colors.GREEN}{price_impact:.2f}%{Colors.END}")
-            print(f"  Gas Estimate: {gas_estimate:,} GWEI")
-            
-            confirm = self.get_user_input("\nExecute sell? (y/N): ").lower()
+            confirm = self.get_user_input("Execute sell? (y/N): ").lower()
             if confirm == 'y':
                 self.execute_token_sell(contract_address, token_amount, sell_result, token_info)
             else:
                 print(f"{Colors.YELLOW}Sell cancelled{Colors.END}")
         else:
-            print(f"{Colors.RED}Sell calculation failed. Check liquidity and contract.{Colors.END}")
+            print(f"{Colors.RED}Sell failed. Check liquidity.{Colors.END}")
         
         input("Press Enter to continue...")
 
