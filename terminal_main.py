@@ -20,6 +20,7 @@ import socket
 from crypto_rooms import CryptoRooms
 from live_market_data import LiveMarketData
 from wallet_manager import WalletManager
+from ai_service import AIService
 
 # Uniswap V2 Router configuration
 UNISWAP_V2_ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
@@ -107,6 +108,9 @@ class TerminalCryptoMarketplace:
         
         self.wallet_manager = WalletManager(self)
         self.crypto_rooms = CryptoRooms(self)
+        
+        # Initialize AI service for Backrooms chat
+        self.ai_service = AIService()
         
         # Market data
         self.crypto_prices = {
@@ -3244,118 +3248,66 @@ class TerminalCryptoMarketplace:
             return None, None
 
     def join_backrooms_chat(self):
-        """Join the Backrooms AI chat room with three AI bots"""
+        """Join the Backrooms AI chat room with live AI models (Gemini, GPT, Claude)"""
         print(f"\n{Colors.MAGENTA}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
-        print(f"{Colors.MAGENTA}║                              THE BACKROOMS - AI CHAT                          ║{Colors.END}")
-        print(f"{Colors.MAGENTA}║                    Three AI bots discuss crypto & DEX trading                 ║{Colors.END}")
+        print(f"{Colors.MAGENTA}║                              THE BACKROOMS - LIVE AI CHAT                     ║{Colors.END}")
+        print(f"{Colors.MAGENTA}║                    Gemini • GPT • Claude discuss crypto & trading             ║{Colors.END}")
         print(f"{Colors.MAGENTA}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
         
-        print(f"\n{Colors.WHITE}AI Bots:{Colors.END}")
-        print(f"  {Colors.CYAN}🤖 CryptoWhale{Colors.END} - Institutional trader, market analysis")
-        print(f"  {Colors.YELLOW}🤖 DeFiDegen{Colors.END} - Yield farming, new protocols, APY hunting")
-        print(f"  {Colors.GREEN}🤖 TokenSniper{Colors.END} - New token launches, moon shots, alpha calls")
+        # Check available AI models
+        available_models = self.ai_service.get_available_models()
+        if not available_models:
+            print(f"\n{Colors.YELLOW}⚠️  No AI API keys configured. Using fallback responses.{Colors.END}")
+            print(f"{Colors.WHITE}To enable live AI responses, add your API keys to a .env file:{Colors.END}")
+            print(f"{Colors.CYAN}  - GEMINI_API_KEY (from https://makersuite.google.com/app/apikey){Colors.END}")
+            print(f"{Colors.CYAN}  - OPENAI_API_KEY (from https://platform.openai.com/api-keys){Colors.END}")
+            print(f"{Colors.CYAN}  - ANTHROPIC_API_KEY (from https://console.anthropic.com/){Colors.END}")
+        
+        print(f"\n{Colors.WHITE}Live AI Models:{Colors.END}")
+        for model in ['Gemini', 'GPT', 'Claude']:
+            if model in available_models:
+                personality = self.ai_service.get_model_personality(model)
+                print(f"  {Colors.GREEN}✅ {model}{Colors.END} - {personality.get('style', 'AI Model')}")
+            else:
+                print(f"  {Colors.RED}❌ {model}{Colors.END} - API key not configured")
         
         print(f"\n{Colors.WHITE}Type your messages below. Type 'exit' to leave.{Colors.END}")
         print(f"{Colors.MAGENTA}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
         
-        # Initialize AI bots
-        ai_bots = {
-            'CryptoWhale': {
-                'color': Colors.CYAN,
-                'personality': 'institutional',
-                'topics': ['market analysis', 'institutional adoption', 'macro trends', 'risk management', 'portfolio strategy']
-            },
-            'DeFiDegen': {
-                'color': Colors.YELLOW,
-                'personality': 'degen',
-                'topics': ['yield farming', 'new protocols', 'APY hunting', 'liquidity mining', 'governance tokens']
-            },
-            'TokenSniper': {
-                'color': Colors.GREEN,
-                'personality': 'sniper',
-                'topics': ['new launches', 'moon shots', 'alpha calls', 'tokenomics', 'community building']
-            }
-        }
-        
-        # AI conversation starters
-        conversation_starters = [
-            "🚀 What's the next big thing in DeFi?",
-            "📈 BTC looking bullish af!",
-            "💎 Diamond hands or paper hands?",
-            "🔥 New token launch incoming!",
-            "🌙 Moon mission or rug pull?",
-            "⚡ Lightning network adoption?",
-            "🎯 Best yield farming strategies?",
-            "🐋 Whale watching time!",
-            "🔮 Price predictions for next week?",
-            "💸 How to spot the next 100x?"
-        ]
-        
-        # Start AI conversation
-        last_ai_message = time.time()
-        ai_message_interval = 15  # AI messages every 15 seconds
-        
         # Initial AI messages
-        print(f"{Colors.CYAN}[{datetime.now().strftime('%H:%M:%S')}] CryptoWhale: {Colors.END}Welcome to the Backrooms, fellow traders! 🐋")
-        print(f"{Colors.YELLOW}[{datetime.now().strftime('%H:%M:%S')}] DeFiDegen: {Colors.END}Yo degens! Ready to farm some yields? 🌾")
-        print(f"{Colors.GREEN}[{datetime.now().strftime('%H:%M:%S')}] TokenSniper: {Colors.END}Alpha calls incoming! Stay alert! 🎯")
+        if available_models:
+            # Get initial responses from available AI models
+            for model in available_models[:2]:  # Show first 2 models
+                response = self.ai_service.get_ai_response(model, "Welcome to the Backrooms!", "Initial greeting")
+                if response:
+                    personality = self.ai_service.get_model_personality(model)
+                    color = personality.get('color', Colors.WHITE)
+                    print(f"{color}[{datetime.now().strftime('%H:%M:%S')}] {model}: {Colors.END}{response}")
+        else:
+            # Fallback initial messages
+            print(f"{Colors.CYAN}[{datetime.now().strftime('%H:%M:%S')}] Gemini: {Colors.END}Welcome to the Backrooms! Let's discuss the future of crypto! 🚀")
+            print(f"{Colors.MAGENTA}[{datetime.now().strftime('%H:%M:%S')}] GPT: {Colors.END}Excited to explore DeFi innovations with you all! 💡")
         
         # Chat loop
+        last_ai_conversation = time.time()
+        ai_conversation_interval = 45  # AI conversations every 45 seconds
+        
         while True:
             try:
-                # Check if it's time for AI messages
+                # Check if it's time for AI conversations
                 current_time = time.time()
-                if current_time - last_ai_message > ai_message_interval:
+                if current_time - last_ai_conversation > ai_conversation_interval and available_models:
                     # Generate AI conversation
-                    bot_name = random.choice(list(ai_bots.keys()))
-                    bot = ai_bots[bot_name]
-                    
-                    # Generate AI message based on personality
-                    if bot['personality'] == 'institutional':
-                        messages = [
-                            "Institutional adoption is accelerating. We're seeing major players enter the space.",
-                            "Risk management is crucial in this volatile market. Diversify your portfolio.",
-                            "The macro environment suggests continued growth in crypto markets.",
-                            "Regulatory clarity will be a major catalyst for institutional investment.",
-                            "Portfolio rebalancing should be done systematically, not emotionally."
-                        ]
-                    elif bot['personality'] == 'degen':
-                        messages = [
-                            "Found a new protocol with 500% APY! DYOR but looks promising! 🚀",
-                            "Yield farming season is back! Time to deploy capital strategically.",
-                            "Governance tokens are the future of DeFi. Stack them while you can!",
-                            "Liquidity mining rewards are insane right now. Don't miss out!",
-                            "New DeFi protocol launching soon. Gonna be huge! 💎"
-                        ]
-                    else:  # sniper
-                        messages = [
-                            "New token launch detected! Contract looks clean, no honeypot! 🎯",
-                            "Moon shot incoming! This token has 100x potential! 🌙",
-                            "Alpha call: Major announcement coming for this project!",
-                            "Tokenomics look solid. Strong community building!",
-                            "Early bird gets the worm! Get in before the pump! 🚀"
-                        ]
-                    
-                    ai_message = random.choice(messages)
-                    print(f"{bot['color']}[{datetime.now().strftime('%H:%M:%S')}] {bot_name}: {Colors.END}{ai_message}")
-                    last_ai_message = current_time
-                    
-                    # Sometimes add a response from another bot
-                    if random.random() < 0.3:  # 30% chance
-                        time.sleep(2)
-                        other_bot = random.choice([b for b in ai_bots.keys() if b != bot_name])
-                        other_bot_data = ai_bots[other_bot]
+                    conversation = self.ai_service.generate_ai_conversation()
+                    if conversation:
+                        starter_personality = self.ai_service.get_model_personality(conversation['starter'])
+                        responder_personality = self.ai_service.get_model_personality(conversation['responder'])
                         
-                        responses = [
-                            "Interesting take! 🤔",
-                            "I agree with that analysis! 👍",
-                            "Need to look into this more... 🔍",
-                            "Bullish on this! 🚀",
-                            "This is the way! 💎"
-                        ]
+                        print(f"{starter_personality.get('color', Colors.WHITE)}[{datetime.now().strftime('%H:%M:%S')}] {conversation['starter']}: {Colors.END}{conversation['starter_message']}")
+                        time.sleep(3)  # Pause between messages
+                        print(f"{responder_personality.get('color', Colors.WHITE)}[{datetime.now().strftime('%H:%M:%S')}] {conversation['responder']}: {Colors.END}{conversation['responder_message']}")
                         
-                        response = random.choice(responses)
-                        print(f"{other_bot_data['color']}[{datetime.now().strftime('%H:%M:%S')}] {other_bot}: {Colors.END}{response}")
+                        last_ai_conversation = current_time
                 
                 # Get user input
                 message = input(f"{Colors.GREEN}{self.chat_username}{Colors.END}: ").strip()
@@ -3365,34 +3317,24 @@ class TerminalCryptoMarketplace:
                 elif not message:
                     continue
                 
-                # AI bots might respond to user messages
-                if random.random() < 0.4:  # 40% chance of AI response
+                # AI models respond to user messages
+                if available_models and random.random() < 0.6:  # 60% chance of AI response
                     time.sleep(1)
-                    responding_bot = random.choice(list(ai_bots.keys()))
-                    bot_data = ai_bots[responding_bot]
+                    responding_model = random.choice(available_models)
+                    ai_response = self.ai_service.get_ai_response(responding_model, message, f"User {self.chat_username} said: {message}")
                     
-                    # Generate contextual response
-                    if any(word in message.lower() for word in ['btc', 'bitcoin']):
-                        responses = ["BTC looking strong! 🐋", "Bitcoin dominance is key!", "HODL the orange coin! 🧡"]
-                    elif any(word in message.lower() for word in ['eth', 'ethereum']):
-                        responses = ["ETH is the future of finance! ⚡", "Ethereum ecosystem is unstoppable!", "Gas fees are temporary, adoption is forever!"]
-                    elif any(word in message.lower() for word in ['defi', 'yield', 'farm']):
-                        responses = ["DeFi is the revolution! 🌾", "Yield farming season is here!", "New protocols launching daily!"]
-                    elif any(word in message.lower() for word in ['moon', 'pump', '100x']):
-                        responses = ["To the moon! 🚀", "Moon mission confirmed!", "100x incoming! 💎"]
-                    else:
-                        responses = ["Interesting point! 🤔", "Bullish on this! 🚀", "This is the way! 💎", "Need to research this! 🔍"]
-                    
-                    ai_response = random.choice(responses)
-                    print(f"{bot_data['color']}[{datetime.now().strftime('%H:%M:%S')}] {responding_bot}: {Colors.END}{ai_response}")
+                    if ai_response:
+                        personality = self.ai_service.get_model_personality(responding_model)
+                        color = personality.get('color', Colors.WHITE)
+                        print(f"{color}[{datetime.now().strftime('%H:%M:%S')}] {responding_model}: {Colors.END}{ai_response}")
                 
                 # Small delay to prevent spam
                 time.sleep(0.5)
                 
             except KeyboardInterrupt:
                 break
-            except Exception:
-                print(f"{Colors.RED}Error in chat. Returning to room list.{Colors.END}")
+            except Exception as e:
+                print(f"{Colors.RED}Error in chat: {e}{Colors.END}")
                 break
         
         print(f"{Colors.YELLOW}Left the Backrooms{Colors.END}")

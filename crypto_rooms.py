@@ -5,6 +5,7 @@ import time
 import threading
 import requests
 import os
+from ai_service import AIService
 
 API_URL = "https://chat-server-production-507c.up.railway.app"
 
@@ -17,6 +18,9 @@ class CryptoRooms:
         self.username = None
         self.polling = False
         self.username_file = "global_username.txt"
+        
+        # Initialize AI service for live responses
+        self.ai_service = AIService()
 
     def prompt_username(self):
         # Try to load username from file
@@ -210,32 +214,71 @@ class CryptoRooms:
             pass
     
     def trigger_ai_response(self, user_message):
-        """Trigger AI bot response to user message in Backrooms"""
+        """Trigger AI bot response to user message in Backrooms using live AI models"""
         try:
-            # 40% chance of AI response
-            if random.random() < 0.4:
+            # 60% chance of AI response
+            if random.random() < 0.6:
                 time.sleep(2)  # Wait 2 seconds before AI responds
                 
-                ai_bots = ['CryptoWhale', 'DeFiDegen', 'TokenSniper']
-                responding_bot = random.choice(ai_bots)
+                # Get available AI models
+                available_models = self.ai_service.get_available_models()
                 
-                # Generate contextual response
-                if any(word in user_message.lower() for word in ['btc', 'bitcoin']):
-                    responses = ["BTC looking strong! 🐋", "Bitcoin dominance is key!", "HODL the orange coin! 🧡"]
-                elif any(word in user_message.lower() for word in ['eth', 'ethereum']):
-                    responses = ["ETH is the future of finance! ⚡", "Ethereum ecosystem is unstoppable!", "Gas fees are temporary, adoption is forever!"]
-                elif any(word in user_message.lower() for word in ['defi', 'yield', 'farm']):
-                    responses = ["DeFi is the revolution! 🌾", "Yield farming season is here!", "New protocols launching daily!"]
-                elif any(word in user_message.lower() for word in ['moon', 'pump', '100x']):
-                    responses = ["To the moon! 🚀", "Moon mission confirmed!", "100x incoming! 💎"]
+                if available_models:
+                    # Use live AI model
+                    responding_model = random.choice(available_models)
+                    ai_response = self.ai_service.get_ai_response(
+                        responding_model, 
+                        user_message, 
+                        f"User {self.username} said: {user_message}"
+                    )
+                    
+                    if ai_response:
+                        self.post_message("Backrooms", responding_model, ai_response)
                 else:
-                    responses = ["Interesting point! 🤔", "Bullish on this! 🚀", "This is the way! 💎", "Need to research this! 🔍"]
-                
-                ai_response = random.choice(responses)
-                self.post_message("Backrooms", responding_bot, ai_response)
+                    # Fallback response
+                    self.post_fallback_response(user_message)
                 
         except Exception as e:
             print(f"Error triggering AI response: {e}")
+            # Fallback response on error
+            self.post_fallback_response(user_message)
+    
+    def post_fallback_response(self, user_message):
+        """Post fallback response when live AI models are unavailable"""
+        # Generate contextual fallback response
+        if any(word in user_message.lower() for word in ['btc', 'bitcoin']):
+            responses = [
+                ("Gemini", "BTC looking strong! Institutional adoption continues! 🐋"),
+                ("GPT", "Bitcoin dominance is key to the ecosystem! 🧡"),
+                ("Claude", "Bitcoin fundamentals remain solid. HODL! 💎")
+            ]
+        elif any(word in user_message.lower() for word in ['eth', 'ethereum']):
+            responses = [
+                ("Gemini", "ETH is the foundation of DeFi! ⚡"),
+                ("GPT", "Ethereum ecosystem is unstoppable! 🔥"),
+                ("Claude", "ETH's utility continues to grow. Bullish! 📈")
+            ]
+        elif any(word in user_message.lower() for word in ['defi', 'yield', 'farm']):
+            responses = [
+                ("Gemini", "DeFi is revolutionizing finance! 🌾"),
+                ("GPT", "Yield farming opportunities are everywhere! 💰"),
+                ("Claude", "DeFi protocols are maturing beautifully! 🚀")
+            ]
+        elif any(word in user_message.lower() for word in ['moon', 'pump', '100x']):
+            responses = [
+                ("Gemini", "Moon mission confirmed! 🚀"),
+                ("GPT", "100x potential is real! 💎"),
+                ("Claude", "Sustainable growth beats quick pumps! 📊")
+            ]
+        else:
+            responses = [
+                ("Gemini", "Interesting point! The crypto space is evolving rapidly! 🤔"),
+                ("GPT", "Bullish on this analysis! Innovation never stops! 🚀"),
+                ("Claude", "This is the way! Long-term thinking wins! 💎")
+            ]
+        
+        bot_name, response = random.choice(responses)
+        self.post_message("Backrooms", bot_name, response)
 
     def poll_messages(self):
         if not self.polling:
@@ -258,83 +301,53 @@ class CryptoRooms:
             print(f"Error creating Backrooms room: {e}")
     
     def start_ai_bots(self):
-        """Start AI bots for the Backrooms room"""
+        """Start AI bots for the Backrooms room using live AI models"""
         if not hasattr(self, 'ai_bots_running'):
             self.ai_bots_running = True
             self.ai_bot_thread = threading.Thread(target=self.ai_bot_loop, daemon=True)
             self.ai_bot_thread.start()
     
     def ai_bot_loop(self):
-        """AI bot conversation loop"""
-        ai_bots = {
-            'CryptoWhale': {
-                'personality': 'institutional',
-                'messages': [
-                    "Institutional adoption is accelerating. We're seeing major players enter the space.",
-                    "Risk management is crucial in this volatile market. Diversify your portfolio.",
-                    "The macro environment suggests continued growth in crypto markets.",
-                    "Regulatory clarity will be a major catalyst for institutional investment.",
-                    "Portfolio rebalancing should be done systematically, not emotionally."
-                ]
-            },
-            'DeFiDegen': {
-                'personality': 'degen',
-                'messages': [
-                    "Found a new protocol with 500% APY! DYOR but looks promising! 🚀",
-                    "Yield farming season is back! Time to deploy capital strategically.",
-                    "Governance tokens are the future of DeFi. Stack them while you can!",
-                    "Liquidity mining rewards are insane right now. Don't miss out!",
-                    "New DeFi protocol launching soon. Gonna be huge! 💎"
-                ]
-            },
-            'TokenSniper': {
-                'personality': 'sniper',
-                'messages': [
-                    "New token launch detected! Contract looks clean, no honeypot! 🎯",
-                    "Moon shot incoming! This token has 100x potential! 🌙",
-                    "Alpha call: Major announcement coming for this project!",
-                    "Tokenomics look solid. Strong community building!",
-                    "Early bird gets the worm! Get in before the pump! 🚀"
-                ]
-            }
-        }
-        
+        """AI bot conversation loop using live AI models"""
         last_message_time = time.time()
-        message_interval = 30  # AI messages every 30 seconds
+        message_interval = 45  # AI messages every 45 seconds
         
         while self.ai_bots_running:
             try:
                 current_time = time.time()
                 if current_time - last_message_time > message_interval:
-                    # Generate AI conversation
-                    bot_name = random.choice(list(ai_bots.keys()))
-                    bot = ai_bots[bot_name]
-                    
-                    message = random.choice(bot['messages'])
-                    self.post_message("Backrooms", bot_name, message)
-                    last_message_time = current_time
-                    
-                    # Sometimes add a response from another bot
-                    if random.random() < 0.3:  # 30% chance
-                        time.sleep(5)
-                        other_bot = random.choice([b for b in ai_bots.keys() if b != bot_name])
-                        
-                        responses = [
-                            "Interesting take! 🤔",
-                            "I agree with that analysis! 👍",
-                            "Need to look into this more... 🔍",
-                            "Bullish on this! 🚀",
-                            "This is the way! 💎"
-                        ]
-                        
-                        response = random.choice(responses)
-                        self.post_message("Backrooms", other_bot, response)
+                    # Generate AI conversation using live models
+                    conversation = self.ai_service.generate_ai_conversation()
+                    if conversation:
+                        # Post conversation to Backrooms
+                        self.post_message("Backrooms", conversation['starter'], conversation['starter_message'])
+                        time.sleep(5)  # Pause between messages
+                        self.post_message("Backrooms", conversation['responder'], conversation['responder_message'])
+                        last_message_time = current_time
+                    else:
+                        # Fallback to static responses if no live models available
+                        self.post_fallback_message()
+                        last_message_time = current_time
                 
                 time.sleep(10)  # Check every 10 seconds
                 
             except Exception as e:
                 print(f"AI bot error: {e}")
                 time.sleep(30)  # Wait longer on error
+    
+    def post_fallback_message(self):
+        """Post fallback message when live AI models are unavailable"""
+        fallback_messages = [
+            ("Gemini", "The crypto market shows strong fundamentals! Institutional adoption is accelerating. 🚀"),
+            ("GPT", "DeFi innovation continues to amaze! New protocols are pushing boundaries. 💡"),
+            ("Claude", "Risk management remains crucial in this volatile market. Diversify wisely! 🛡️"),
+            ("Gemini", "Technical analysis suggests bullish momentum building. 📈"),
+            ("GPT", "The intersection of AI and crypto is revolutionary! 🌟"),
+            ("Claude", "Long-term fundamentals support sustainable growth. Patience pays! 💎")
+        ]
+        
+        bot_name, message = random.choice(fallback_messages)
+        self.post_message("Backrooms", bot_name, message)
     
     def stop_ai_bots(self):
         """Stop AI bots"""
