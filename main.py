@@ -2319,10 +2319,44 @@ class CryptoMarketplace:
             transactions_text.insert(tk.END, f"Date: {tx['timestamp']}\n")
             transactions_text.insert(tk.END, "-" * 50 + "\n\n")
     
+    def get_global_username_gui(self):
+        """Get or generate global username for GUI"""
+        username_file = "global_username.txt"
+        
+        # Try to load existing username
+        if os.path.exists(username_file):
+            try:
+                with open(username_file, 'r', encoding='utf-8') as f:
+                    username = f.read().strip()
+                    if username:
+                        return username
+            except Exception:
+                pass
+        
+        # Generate new username
+        default = f"User{random.randint(1000,9999)}"
+        username = tk.simpledialog.askstring("Global Username", 
+                                           "Enter your global username (used for all chat systems):", 
+                                           initialvalue=default, parent=self.root)
+        if not username:
+            username = default
+        
+        # Save username globally
+        try:
+            with open(username_file, 'w', encoding='utf-8') as f:
+                f.write(username)
+        except Exception:
+            pass
+        
+        return username
+
     def marketplace_chat_gui(self):
         """Marketplace chat with GUI"""
+        # Get global username
+        username = self.get_global_username_gui()
+        
         chat_window = tk.Toplevel(self.root)
-        chat_window.title("Marketplace Chat")
+        chat_window.title(f"Marketplace Chat - {username}")
         chat_window.geometry("800x600")
         chat_window.configure(bg=self.bg_color)
         
@@ -2347,7 +2381,7 @@ class CryptoMarketplace:
                 return
             
             # Display user message
-            chat_text.insert(tk.END, f"You: {message}\n")
+            chat_text.insert(tk.END, f"{username}: {message}\n")
             message_var.set("")
             
             # Simulate bot response
@@ -2370,7 +2404,7 @@ class CryptoMarketplace:
         message_entry.bind('<Return>', lambda e: send_message())
         
         # Welcome message
-        chat_text.insert(tk.END, "EscrowBot: Welcome to the marketplace chat! I'm here to help with escrow transactions.\n")
+        chat_text.insert(tk.END, f"EscrowBot: Welcome {username} to the marketplace chat! I'm here to help with escrow transactions.\n")
         chat_text.insert(tk.END, "EscrowBot: You can ask me about buying, selling, or escrow services.\n")
     
     def load_marketplace_listings_gui(self):

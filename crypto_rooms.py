@@ -16,7 +16,7 @@ class CryptoRooms:
         self.current_room = None
         self.username = None
         self.polling = False
-        self.username_file = "chat_username.txt"
+        self.username_file = "global_username.txt"
 
     def prompt_username(self):
         # Try to load username from file
@@ -29,7 +29,7 @@ class CryptoRooms:
                     self.username = None
         if not self.username:
             default = f"User{random.randint(1000,9999)}"
-            self.username = simpledialog.askstring("Username", "Enter your chat username:", initialvalue=default, parent=self.parent.root)
+            self.username = simpledialog.askstring("Global Username", "Enter your global username (used for all chat systems):", initialvalue=default, parent=self.parent.root)
             if not self.username:
                 self.username = default
             # Save username to file

@@ -934,9 +934,9 @@ class TerminalCryptoMarketplace:
                 print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
                 time.sleep(1)
 
-    def get_chat_username(self):
-        """Get or generate chat username"""
-        username_file = "chat_username.txt"
+    def get_global_username(self):
+        """Get or generate global username for all chat systems"""
+        username_file = "global_username.txt"
         
         # Try to load existing username
         if os.path.exists(username_file):
@@ -950,14 +950,14 @@ class TerminalCryptoMarketplace:
         
         # Generate new username
         default = f"User{random.randint(1000,9999)}"
-        print(f"\n{Colors.YELLOW}Enter your chat username:{Colors.END}")
+        print(f"\n{Colors.YELLOW}Enter your global username (used for all chat systems):{Colors.END}")
         print(f"{Colors.WHITE}Press Enter to use: {Colors.GREEN}{default}{Colors.END}")
         username = input(f"{Colors.CYAN}Username: {Colors.END}").strip()
         
         if not username:
             username = default
         
-        # Save username
+        # Save username globally
         try:
             with open(username_file, 'w', encoding='utf-8') as f:
                 f.write(username)
@@ -965,6 +965,10 @@ class TerminalCryptoMarketplace:
             pass
         
         return username
+
+    def get_chat_username(self):
+        """Get or generate chat username (now uses global username)"""
+        return self.get_global_username()
 
     def join_chat_room(self, room_name):
         """Join a specific chat room"""
@@ -2691,23 +2695,8 @@ class TerminalCryptoMarketplace:
                 self.send_marketplace_message(message)
     
     def get_marketplace_username(self):
-        """Get marketplace username"""
-        try:
-            with open('marketplace_username.txt', 'r') as f:
-                return f.read().strip()
-        except FileNotFoundError:
-            pass
-        
-        default = f"User{random.randint(1000,9999)}"
-        username = self.get_user_input(f"Enter username (default: {default}): ").strip()
-        
-        if not username:
-            username = default
-        
-        with open('marketplace_username.txt', 'w') as f:
-            f.write(username)
-        
-        return username
+        """Get marketplace username (now uses global username)"""
+        return self.get_global_username()
     
     def show_marketplace_help(self):
         """Show marketplace chat commands"""
