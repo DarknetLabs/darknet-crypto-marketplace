@@ -2273,6 +2273,7 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.GREEN}[4]{Colors.END} My Purchases")
             print(f"{Colors.GREEN}[5]{Colors.END} Escrow Transactions")
             print(f"{Colors.GREEN}[6]{Colors.END} Marketplace Chat")
+            print(f"{Colors.GREEN}[7]{Colors.END} Marketplace Wallet Management")
             print(f"{Colors.GREEN}[0]{Colors.END} Back to Main Menu")
             
             choice = self.get_user_input()
@@ -2291,6 +2292,8 @@ class TerminalCryptoMarketplace:
                 self.escrow_transactions()
             elif choice == '6':
                 self.marketplace_chat()
+            elif choice == '7':
+                self.marketplace_wallet_screen()
     
     def browse_listings(self):
         """Browse marketplace listings"""
@@ -2461,12 +2464,10 @@ class TerminalCryptoMarketplace:
         print(f"{Colors.WHITE}Title: {listing['title']}{Colors.END}")
         print(f"{Colors.WHITE}Price: {listing['price']} ETH{Colors.END}")
         
-        # Get buyer wallet details
-        buyer_address = self.get_user_input("Your wallet address: ").strip()
-        private_key = self.get_user_input("Your private key: ").strip()
+        # Select marketplace wallet
+        buyer_address, private_key = self.select_marketplace_wallet()
         
-        if not self.web3.is_address(buyer_address):
-            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+        if not buyer_address or not private_key:
             input("Press Enter to continue...")
             return
         
@@ -2474,6 +2475,7 @@ class TerminalCryptoMarketplace:
         buyer_balance = self.get_wallet_balance(buyer_address)
         if buyer_balance < listing['price']:
             print(f"{Colors.RED}Insufficient ETH balance. You have {buyer_balance:.6f} ETH{Colors.END}")
+            print(f"{Colors.WHITE}Please fund your marketplace wallet to continue.{Colors.END}")
             input("Press Enter to continue...")
             return
         
@@ -2909,6 +2911,255 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.WHITE}Date: {tx['timestamp']}{Colors.END}")
         
         input("Press Enter to continue...")
+
+    def marketplace_wallet_screen(self):
+        """Display marketplace wallet management"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                           MARKETPLACE WALLET MANAGEMENT                     ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.YELLOW}MARKETPLACE WALLETS (For Buying Items Only){Colors.END}")
+            print(f"{Colors.WHITE}These wallets are separate from trading wallets and used only for marketplace purchases.{Colors.END}")
+            
+            # Load marketplace wallets
+            marketplace_wallets = self.load_marketplace_wallets()
+            
+            if marketplace_wallets:
+                print(f"\n{Colors.GREEN}Your Marketplace Wallets:{Colors.END}")
+                for i, wallet in enumerate(marketplace_wallets, 1):
+                    balance = self.get_wallet_balance(wallet['address'])
+                    print(f"  {i}. {wallet['name']} - {wallet['address'][:10]}... - {balance:.6f} ETH")
+            else:
+                print(f"\n{Colors.WHITE}No marketplace wallets found.{Colors.END}")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Create New Marketplace Wallet")
+            print(f"{Colors.GREEN}[2]{Colors.END} Import Existing Wallet")
+            print(f"{Colors.GREEN}[3]{Colors.END} View Marketplace Wallets")
+            print(f"{Colors.GREEN}[4]{Colors.END} Check Balance")
+            print(f"{Colors.GREEN}[5]{Colors.END} Export Marketplace Wallets")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back to Marketplace")
+            
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.create_marketplace_wallet()
+            elif choice == '2':
+                self.import_marketplace_wallet()
+            elif choice == '3':
+                self.view_marketplace_wallets()
+            elif choice == '4':
+                self.check_marketplace_balance()
+            elif choice == '5':
+                self.export_marketplace_wallets()
+
+    def create_marketplace_wallet(self):
+        """Create a new marketplace wallet"""
+        print(f"\n{Colors.YELLOW}CREATE MARKETPLACE WALLET{Colors.END}")
+        print(f"{Colors.WHITE}This wallet will be used ONLY for marketplace purchases.{Colors.END}")
+        
+        # Generate new wallet
+        account = self.web3.eth.account.create()
+        address = account.address
+        private_key = account.key.hex()
+        
+        # Get wallet name
+        name = self.get_user_input("Wallet name (e.g., 'Marketplace Buyer'): ").strip()
+        if not name:
+            name = f"Marketplace Wallet {len(self.load_marketplace_wallets()) + 1}"
+        
+        # Create wallet object
+        wallet = {
+            'name': name,
+            'address': address,
+            'private_key': private_key,
+            'created_at': datetime.now().isoformat(),
+            'type': 'marketplace'
+        }
+        
+        # Save wallet
+        self.save_marketplace_wallet(wallet)
+        
+        print(f"\n{Colors.GREEN}✅ Marketplace wallet created successfully!{Colors.END}")
+        print(f"{Colors.WHITE}Name: {name}{Colors.END}")
+        print(f"{Colors.WHITE}Address: {address}{Colors.END}")
+        print(f"{Colors.WHITE}Private Key: {private_key}{Colors.END}")
+        print(f"\n{Colors.YELLOW}IMPORTANT:{Colors.END}")
+        print(f"{Colors.WHITE}• Save your private key securely{Colors.END}")
+        print(f"{Colors.WHITE}• This wallet is for marketplace purchases only{Colors.END}")
+        print(f"{Colors.WHITE}• Fund it with ETH to start buying items{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def import_marketplace_wallet(self):
+        """Import existing wallet for marketplace use"""
+        print(f"\n{Colors.YELLOW}IMPORT MARKETPLACE WALLET{Colors.END}")
+        print(f"{Colors.WHITE}Import an existing wallet for marketplace purchases only.{Colors.END}")
+        
+        address = self.get_user_input("Wallet address: ").strip()
+        private_key = self.get_user_input("Private key: ").strip()
+        
+        if not self.web3.is_address(address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Verify private key matches address
+        try:
+            account = self.web3.eth.account.from_key(private_key)
+            if account.address.lower() != address.lower():
+                print(f"{Colors.RED}Private key doesn't match address{Colors.END}")
+                input("Press Enter to continue...")
+                return
+        except Exception:
+            print(f"{Colors.RED}Invalid private key{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get wallet name
+        name = self.get_user_input("Wallet name: ").strip()
+        if not name:
+            name = f"Imported Marketplace {address[:8]}"
+        
+        # Create wallet object
+        wallet = {
+            'name': name,
+            'address': address,
+            'private_key': private_key,
+            'created_at': datetime.now().isoformat(),
+            'type': 'marketplace'
+        }
+        
+        # Save wallet
+        self.save_marketplace_wallet(wallet)
+        
+        print(f"{Colors.GREEN}✅ Marketplace wallet imported successfully!{Colors.END}")
+        input("Press Enter to continue...")
+
+    def view_marketplace_wallets(self):
+        """View all marketplace wallets"""
+        print(f"\n{Colors.YELLOW}MARKETPLACE WALLETS{Colors.END}")
+        
+        marketplace_wallets = self.load_marketplace_wallets()
+        
+        if not marketplace_wallets:
+            print(f"{Colors.WHITE}No marketplace wallets found.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        for i, wallet in enumerate(marketplace_wallets, 1):
+            balance = self.get_wallet_balance(wallet['address'])
+            print(f"\n{Colors.GREEN}[{i}]{Colors.END} {wallet['name']}")
+            print(f"{Colors.WHITE}   Address: {wallet['address']}{Colors.END}")
+            print(f"{Colors.WHITE}   Balance: {balance:.6f} ETH{Colors.END}")
+            print(f"{Colors.WHITE}   Created: {wallet['created_at']}{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def check_marketplace_balance(self):
+        """Check balance of marketplace wallet"""
+        print(f"\n{Colors.YELLOW}CHECK MARKETPLACE BALANCE{Colors.END}")
+        
+        marketplace_wallets = self.load_marketplace_wallets()
+        
+        if not marketplace_wallets:
+            print(f"{Colors.WHITE}No marketplace wallets found.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Show wallet selection
+        for i, wallet in enumerate(marketplace_wallets, 1):
+            print(f"{i}. {wallet['name']} - {wallet['address'][:10]}...")
+        
+        try:
+            choice = int(self.get_user_input("Select wallet (number): "))
+            if 1 <= choice <= len(marketplace_wallets):
+                wallet = marketplace_wallets[choice - 1]
+                balance = self.get_wallet_balance(wallet['address'])
+                
+                print(f"\n{Colors.GREEN}Wallet: {wallet['name']}{Colors.END}")
+                print(f"{Colors.WHITE}Address: {wallet['address']}{Colors.END}")
+                print(f"{Colors.WHITE}Balance: {balance:.6f} ETH{Colors.END}")
+                
+                if balance > 0:
+                    print(f"{Colors.GREEN}✅ Ready for marketplace purchases!{Colors.END}")
+                else:
+                    print(f"{Colors.YELLOW}⚠️  Fund this wallet to start buying items{Colors.END}")
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def export_marketplace_wallets(self):
+        """Export marketplace wallets to file"""
+        print(f"\n{Colors.YELLOW}EXPORT MARKETPLACE WALLETS{Colors.END}")
+        
+        marketplace_wallets = self.load_marketplace_wallets()
+        
+        if not marketplace_wallets:
+            print(f"{Colors.WHITE}No marketplace wallets to export.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        filename = f"marketplace_wallets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        try:
+            with open(filename, 'w') as f:
+                json.dump(marketplace_wallets, f, indent=2)
+            print(f"{Colors.GREEN}✅ Marketplace wallets exported to {filename}{Colors.END}")
+        except Exception as e:
+            print(f"{Colors.RED}Failed to export: {e}{Colors.END}")
+        
+        input("Press Enter to continue...")
+
+    def load_marketplace_wallets(self):
+        """Load marketplace wallets from file"""
+        try:
+            with open('marketplace_wallets.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+
+    def save_marketplace_wallet(self, wallet):
+        """Save marketplace wallet to file"""
+        wallets = self.load_marketplace_wallets()
+        wallets.append(wallet)
+        
+        with open('marketplace_wallets.json', 'w') as f:
+            json.dump(wallets, f, indent=2)
+
+    def select_marketplace_wallet(self):
+        """Let user select a marketplace wallet for purchase"""
+        marketplace_wallets = self.load_marketplace_wallets()
+        
+        if not marketplace_wallets:
+            print(f"{Colors.RED}No marketplace wallets found.{Colors.END}")
+            print(f"{Colors.WHITE}Please create or import a marketplace wallet first.{Colors.END}")
+            return None, None
+        
+        print(f"\n{Colors.YELLOW}SELECT MARKETPLACE WALLET{Colors.END}")
+        for i, wallet in enumerate(marketplace_wallets, 1):
+            balance = self.get_wallet_balance(wallet['address'])
+            print(f"{i}. {wallet['name']} - {balance:.6f} ETH")
+        
+        try:
+            choice = int(self.get_user_input("Select wallet (number): "))
+            if 1 <= choice <= len(marketplace_wallets):
+                wallet = marketplace_wallets[choice - 1]
+                return wallet['address'], wallet['private_key']
+            else:
+                print(f"{Colors.RED}Invalid selection{Colors.END}")
+                return None, None
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+            return None, None
 
 def main():
     """Main entry point"""
