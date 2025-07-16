@@ -157,35 +157,65 @@ class AIService:
     
     def initialize_models(self):
         """Initialize AI models with API keys"""
+        print("🤖 Initializing AI models for Railway deployment...")
+        
+        # Check if running on Railway
+        is_railway = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID')
+        if is_railway:
+            print("🚂 Detected Railway environment - using Railway environment variables")
+        
         try:
             # Initialize Gemini
-            if os.getenv('GEMINI_API_KEY'):
-                import google.generativeai as genai
-                genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-                self.models['Gemini'] = genai.GenerativeModel('gemini-pro')
-                print("✅ Gemini AI initialized")
+            gemini_key = os.getenv('GEMINI_API_KEY')
+            if gemini_key:
+                try:
+                    import google.generativeai as genai
+                    genai.configure(api_key=gemini_key)
+                    self.models['Gemini'] = genai.GenerativeModel('gemini-pro')
+                    print("✅ Gemini AI initialized successfully")
+                except Exception as e:
+                    print(f"❌ Failed to initialize Gemini: {e}")
             else:
-                print("⚠️  GEMINI_API_KEY not found in environment")
+                print("⚠️  GEMINI_API_KEY not found in environment variables")
             
             # Initialize OpenAI GPT
-            if os.getenv('OPENAI_API_KEY'):
-                import openai
-                openai.api_key = os.getenv('OPENAI_API_KEY')
-                self.models['GPT'] = openai
-                print("✅ OpenAI GPT initialized")
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if openai_key:
+                try:
+                    import openai
+                    openai.api_key = openai_key
+                    self.models['GPT'] = openai
+                    print("✅ OpenAI GPT initialized successfully")
+                except Exception as e:
+                    print(f"❌ Failed to initialize OpenAI GPT: {e}")
             else:
-                print("⚠️  OPENAI_API_KEY not found in environment")
+                print("⚠️  OPENAI_API_KEY not found in environment variables")
             
             # Initialize Claude
-            if os.getenv('ANTHROPIC_API_KEY'):
-                import anthropic
-                self.models['Claude'] = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-                print("✅ Claude AI initialized")
+            claude_key = os.getenv('ANTHROPIC_API_KEY')
+            if claude_key:
+                try:
+                    import anthropic
+                    self.models['Claude'] = anthropic.Anthropic(api_key=claude_key)
+                    print("✅ Claude AI initialized successfully")
+                except Exception as e:
+                    print(f"❌ Failed to initialize Claude: {e}")
             else:
-                print("⚠️  ANTHROPIC_API_KEY not found in environment")
+                print("⚠️  ANTHROPIC_API_KEY not found in environment variables")
+            
+            # Summary
+            available_models = list(self.models.keys())
+            if available_models:
+                print(f"🎉 AI Models ready: {', '.join(available_models)}")
+                if is_railway:
+                    print("🚂 Railway AI integration complete!")
+            else:
+                print("⚠️  No AI models available - Backrooms will use fallback responses")
+                print("💡 Add API keys to Railway environment variables to enable live AI")
                 
         except Exception as e:
-            print(f"❌ Error initializing AI models: {e}")
+            print(f"❌ Critical error initializing AI models: {e}")
+            print("💡 Check Railway environment variables and API key validity")
     
     def get_ai_response(self, model_name, message, context=""):
         """Get response from specific AI model"""
