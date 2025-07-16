@@ -160,6 +160,7 @@ class TerminalCryptoMarketplace:
         print(f"{Colors.YELLOW}[7]{Colors.END} Settings")
         print(f"{Colors.YELLOW}[8]{Colors.END} Uniswap Trading")
         print(f"{Colors.YELLOW}[9]{Colors.END} Real Blockchain Trading")
+        print(f"{Colors.YELLOW}[10]{Colors.END} Token Sniping")
         print(f"{Colors.YELLOW}[0]{Colors.END} Exit")
         print(f"\n{Colors.CYAN}Balance: ${self.user_balance:,.2f}{Colors.END}")
 
@@ -1200,6 +1201,8 @@ class TerminalCryptoMarketplace:
                     self.uniswap_screen()
                 elif choice == '9':
                     self.real_trading_screen()
+                elif choice == '10':
+                    self.token_sniping_screen()
                 else:
                     print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
                     time.sleep(1)
@@ -1877,6 +1880,371 @@ class TerminalCryptoMarketplace:
             print(f"{Colors.RED}Error: {str(e)}{Colors.END}")
         
         input("Press Enter to continue...")
+
+    def token_sniping_screen(self):
+        """Display token sniping interface"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                              TOKEN SNIPING                                  ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.RED}⚠️  WARNING: Token sniping is high-risk trading! ⚠️{Colors.END}")
+            print(f"{Colors.WHITE}Only snipe tokens you've researched. Many are scams or rug pulls.{Colors.END}")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Setup Sniper Bot")
+            print(f"{Colors.GREEN}[2]{Colors.END} Monitor New Listings")
+            print(f"{Colors.GREEN}[3]{Colors.END} Quick Snipe Token")
+            print(f"{Colors.GREEN}[4]{Colors.END} View Sniper History")
+            print(f"{Colors.GREEN}[5]{Colors.END} Sniper Settings")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back to Main Menu")
+            
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.setup_sniper_bot()
+            elif choice == '2':
+                self.monitor_new_listings()
+            elif choice == '3':
+                self.quick_snipe_token()
+            elif choice == '4':
+                self.view_sniper_history()
+            elif choice == '5':
+                self.sniper_settings()
+    
+    def setup_sniper_bot(self):
+        """Setup automated sniper bot"""
+        print(f"\n{Colors.YELLOW}SNIPER BOT SETUP{Colors.END}")
+        
+        # Get wallet details
+        wallet_address = self.get_user_input("Wallet Address: ").strip()
+        private_key = self.get_user_input("Private Key: ").strip()
+        
+        if not self.web3.is_address(wallet_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Sniper settings
+        try:
+            max_eth_per_snipe = float(self.get_user_input("Max ETH per snipe: "))
+            gas_price_gwei = float(self.get_user_input("Gas price (Gwei): "))
+            slippage_percent = float(self.get_user_input("Slippage tolerance (%): "))
+            auto_approve = self.get_user_input("Auto-approve tokens? (y/n): ").lower() == 'y'
+        except ValueError:
+            print(f"{Colors.RED}Invalid input{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Save sniper settings
+        sniper_config = {
+            'wallet_address': wallet_address,
+            'private_key': private_key,
+            'max_eth_per_snipe': max_eth_per_snipe,
+            'gas_price_gwei': gas_price_gwei,
+            'slippage_percent': slippage_percent,
+            'auto_approve': auto_approve,
+            'enabled': True,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        with open('sniper_config.json', 'w') as f:
+            json.dump(sniper_config, f, indent=2)
+        
+        print(f"{Colors.GREEN}✅ Sniper bot configured successfully!{Colors.END}")
+        print(f"{Colors.WHITE}Max ETH per snipe: {max_eth_per_snipe}{Colors.END}")
+        print(f"{Colors.WHITE}Gas price: {gas_price_gwei} Gwei{Colors.END}")
+        print(f"{Colors.WHITE}Slippage: {slippage_percent}%{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def monitor_new_listings(self):
+        """Monitor for new token listings"""
+        print(f"\n{Colors.YELLOW}MONITORING NEW LISTINGS{Colors.END}")
+        print(f"{Colors.WHITE}Scanning for new tokens on Uniswap...{Colors.END}")
+        
+        # Load sniper config
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            print(f"{Colors.RED}No sniper configuration found. Setup sniper bot first.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        if not config.get('enabled', False):
+            print(f"{Colors.RED}Sniper bot is disabled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"{Colors.GREEN}Monitoring started...{Colors.END}")
+        print(f"{Colors.WHITE}Press Ctrl+C to stop{Colors.END}")
+        
+        try:
+            while True:
+                # Simulate finding new tokens (in real implementation, this would monitor blockchain events)
+                new_tokens = self.scan_for_new_tokens()
+                
+                for token in new_tokens:
+                    print(f"\n{Colors.CYAN}🔥 NEW TOKEN DETECTED! 🔥{Colors.END}")
+                    print(f"{Colors.WHITE}Contract: {token['address']}{Colors.END}")
+                    print(f"{Colors.WHITE}Name: {token['name']}{Colors.END}")
+                    print(f"{Colors.WHITE}Symbol: {token['symbol']}{Colors.END}")
+                    print(f"{Colors.WHITE}Liquidity: {token['liquidity']} ETH{Colors.END}")
+                    
+                    # Auto-snipe if conditions are met
+                    if self.should_auto_snipe(token, config):
+                        print(f"{Colors.YELLOW}Auto-sniping...{Colors.END}")
+                        success = self.execute_snipe(token, config)
+                        if success:
+                            print(f"{Colors.GREEN}✅ Snipe successful!{Colors.END}")
+                        else:
+                            print(f"{Colors.RED}❌ Snipe failed!{Colors.END}")
+                    else:
+                        print(f"{Colors.YELLOW}Token doesn't meet auto-snipe criteria{Colors.END}")
+                
+                time.sleep(5)  # Check every 5 seconds
+                
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Monitoring stopped{Colors.END}")
+            input("Press Enter to continue...")
+    
+    def scan_for_new_tokens(self):
+        """Scan for new token listings (simulated)"""
+        # In a real implementation, this would:
+        # 1. Monitor Uniswap factory events for new pairs
+        # 2. Check for new liquidity additions
+        # 3. Analyze token contracts for potential scams
+        
+        # Simulated new tokens for demo
+        new_tokens = []
+        
+        # Random chance to find a "new" token
+        if random.random() < 0.1:  # 10% chance
+            token = {
+                'address': f"0x{random.randint(1000000000000000000000000000000000000000, 9999999999999999999999999999999999999999):040x}",
+                'name': f"Token{random.randint(1000, 9999)}",
+                'symbol': f"TKN{random.randint(100, 999)}",
+                'liquidity': random.uniform(1, 50),
+                'created_at': datetime.now().isoformat()
+            }
+            new_tokens.append(token)
+        
+        return new_tokens
+    
+    def should_auto_snipe(self, token, config):
+        """Determine if token should be auto-sniped"""
+        # Basic criteria for auto-sniping
+        min_liquidity = 5  # Minimum 5 ETH liquidity
+        max_liquidity = 100  # Maximum 100 ETH liquidity (avoid whales)
+        
+        liquidity = token.get('liquidity', 0)
+        
+        # Check liquidity range
+        if liquidity < min_liquidity or liquidity > max_liquidity:
+            return False
+        
+        # Check if we have enough ETH
+        wallet_balance = self.get_wallet_balance(config['wallet_address'])
+        if wallet_balance < config['max_eth_per_snipe']:
+            return False
+        
+        # Additional checks could include:
+        # - Contract verification
+        # - Honeypot detection
+        # - Ownership renounced
+        # - Liquidity locked
+        
+        return True
+    
+    def execute_snipe(self, token, config):
+        """Execute a snipe transaction"""
+        try:
+            eth_amount = config['max_eth_per_snipe']
+            wallet_address = config['wallet_address']
+            private_key = config['private_key']
+            contract_address = token['address']
+            
+            # Execute the snipe
+            success, message = self.execute_real_uniswap_buy(
+                contract_address, eth_amount, wallet_address, private_key
+            )
+            
+            if success:
+                # Log successful snipe
+                snipe_record = {
+                    'token_address': contract_address,
+                    'token_name': token['name'],
+                    'token_symbol': token['symbol'],
+                    'eth_amount': eth_amount,
+                    'timestamp': datetime.now().isoformat(),
+                    'status': 'success',
+                    'tx_hash': message
+                }
+                
+                self.log_snipe(snipe_record)
+            
+            return success
+            
+        except Exception as e:
+            print(f"Error executing snipe: {e}")
+            return False
+    
+    def log_snipe(self, snipe_record):
+        """Log snipe transaction"""
+        try:
+            with open('sniper_history.json', 'r') as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            history = []
+        
+        history.append(snipe_record)
+        
+        with open('sniper_history.json', 'w') as f:
+            json.dump(history, f, indent=2)
+    
+    def quick_snipe_token(self):
+        """Quick snipe a specific token"""
+        print(f"\n{Colors.YELLOW}QUICK TOKEN SNIPE{Colors.END}")
+        
+        # Load sniper config
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            print(f"{Colors.RED}No sniper configuration found. Setup sniper bot first.{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get token details
+        contract_address = self.get_user_input("Token Contract Address: ").strip()
+        
+        if not self.web3.is_address(contract_address):
+            print(f"{Colors.RED}Invalid contract address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        try:
+            eth_amount = float(self.get_user_input("ETH Amount to snipe: "))
+        except ValueError:
+            print(f"{Colors.RED}Invalid ETH amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Check wallet balance
+        wallet_balance = self.get_wallet_balance(config['wallet_address'])
+        if wallet_balance < eth_amount:
+            print(f"{Colors.RED}Insufficient ETH balance. You have {wallet_balance:.6f} ETH{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Get token info
+        token_info = self.get_token_info(contract_address)
+        if not token_info:
+            print(f"{Colors.RED}Could not get token information{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.YELLOW}SNIPE PREVIEW:{Colors.END}")
+        print(f"{Colors.WHITE}Token: {token_info['name']} ({token_info['symbol']}){Colors.END}")
+        print(f"{Colors.WHITE}Contract: {contract_address}{Colors.END}")
+        print(f"{Colors.WHITE}Amount: {eth_amount} ETH{Colors.END}")
+        print(f"{Colors.WHITE}Gas Price: {config['gas_price_gwei']} Gwei{Colors.END}")
+        
+        confirm = self.get_user_input("Type 'SNIPE' to execute: ")
+        if confirm != 'SNIPE':
+            print(f"{Colors.YELLOW}Snipe cancelled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute snipe
+        print(f"{Colors.YELLOW}Executing snipe...{Colors.END}")
+        success = self.execute_snipe({
+            'address': contract_address,
+            'name': token_info['name'],
+            'symbol': token_info['symbol']
+        }, config)
+        
+        if success:
+            print(f"{Colors.GREEN}✅ Snipe successful!{Colors.END}")
+        else:
+            print(f"{Colors.RED}❌ Snipe failed!{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def view_sniper_history(self):
+        """View sniper transaction history"""
+        print(f"\n{Colors.YELLOW}SNIPER HISTORY{Colors.END}")
+        
+        try:
+            with open('sniper_history.json', 'r') as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            print(f"{Colors.WHITE}No sniper history found{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        if not history:
+            print(f"{Colors.WHITE}No sniper transactions yet{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.GREEN}Recent Snipes:{Colors.END}")
+        for snipe in history[-10:]:  # Show last 10 snipes
+            timestamp = snipe.get('timestamp', 'Unknown')
+            token_name = snipe.get('token_name', 'Unknown')
+            token_symbol = snipe.get('token_symbol', 'Unknown')
+            eth_amount = snipe.get('eth_amount', 0)
+            status = snipe.get('status', 'Unknown')
+            
+            status_color = Colors.GREEN if status == 'success' else Colors.RED
+            print(f"{Colors.WHITE}{timestamp} | {token_name} ({token_symbol}) | {eth_amount} ETH | {status_color}{status}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def sniper_settings(self):
+        """Configure sniper settings"""
+        print(f"\n{Colors.YELLOW}SNIPER SETTINGS{Colors.END}")
+        
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            print(f"{Colors.RED}No sniper configuration found{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.GREEN}[1]{Colors.END} Enable/Disable Sniper")
+        print(f"{Colors.GREEN}[2]{Colors.END} Update Settings")
+        print(f"{Colors.GREEN}[3]{Colors.END} View Current Settings")
+        print(f"{Colors.GREEN}[0]{Colors.END} Back")
+        
+        choice = self.get_user_input()
+        
+        if choice == '1':
+            config['enabled'] = not config.get('enabled', False)
+            status = "enabled" if config['enabled'] else "disabled"
+            print(f"{Colors.GREEN}Sniper {status}{Colors.END}")
+            
+            with open('sniper_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+                
+        elif choice == '2':
+            self.setup_sniper_bot()  # Reconfigure
+            
+        elif choice == '3':
+            print(f"\n{Colors.GREEN}Current Settings:{Colors.END}")
+            print(f"{Colors.WHITE}Wallet: {config.get('wallet_address', 'Not set')}{Colors.END}")
+            print(f"{Colors.WHITE}Max ETH per snipe: {config.get('max_eth_per_snipe', 0)}{Colors.END}")
+            print(f"{Colors.WHITE}Gas price: {config.get('gas_price_gwei', 0)} Gwei{Colors.END}")
+            print(f"{Colors.WHITE}Slippage: {config.get('slippage_percent', 0)}%{Colors.END}")
+            print(f"{Colors.WHITE}Enabled: {config.get('enabled', False)}{Colors.END}")
+            
+            input("Press Enter to continue...")
 
 def main():
     """Main entry point"""

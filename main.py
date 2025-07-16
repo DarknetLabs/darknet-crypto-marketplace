@@ -212,7 +212,11 @@ class CryptoMarketplace:
         
         chat_btn = tk.Button(button_frame, text="Open Chat Rooms", command=self.crypto_rooms.create_rooms_window, 
                             fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
-        chat_btn.grid(row=2, column=0, columnspan=2, pady=5)
+        chat_btn.grid(row=2, column=0, pady=5)
+        
+        sniper_btn = tk.Button(button_frame, text="Token Sniper", command=self.open_sniper_window, 
+                              fg=self.error_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        sniper_btn.grid(row=2, column=1, pady=5)
         
         # Status bar
         status_frame = tk.Frame(main_frame, bg=self.bg_color, height=25)
@@ -870,6 +874,585 @@ class CryptoMarketplace:
         # Create chat interface
         self.crypto_rooms.create_chat_interface(chat_frame)
         
+    def create_sniper_tab(self, parent):
+        """Create token sniping tab"""
+        sniper_frame = ttk.Frame(parent)
+        sniper_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Header
+        header_label = tk.Label(sniper_frame, text="TOKEN SNIPING BOT", 
+                               fg=self.accent_color, bg=self.bg_color, font=('Courier', 14, 'bold'))
+        header_label.pack(pady=(0, 20))
+        
+        warning_label = tk.Label(sniper_frame, text="⚠️  WARNING: Token sniping is high-risk trading! ⚠️", 
+                                fg=self.error_color, bg=self.bg_color, font=('Courier', 12, 'bold'))
+        warning_label.pack(pady=(0, 10))
+        
+        warning2_label = tk.Label(sniper_frame, text="Only snipe tokens you've researched. Many are scams or rug pulls.", 
+                                 fg=self.fg_color, bg=self.bg_color, font=('Courier', 10))
+        warning2_label.pack(pady=(0, 20))
+        
+        # Control buttons
+        button_frame = tk.Frame(sniper_frame, bg=self.bg_color)
+        button_frame.pack(pady=20)
+        
+        setup_btn = tk.Button(button_frame, text="Setup Sniper Bot", command=self.setup_sniper_bot_gui,
+                             fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        setup_btn.grid(row=0, column=0, padx=10, pady=5)
+        
+        monitor_btn = tk.Button(button_frame, text="Monitor New Listings", command=self.start_monitoring_gui,
+                               fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        monitor_btn.grid(row=0, column=1, padx=10, pady=5)
+        
+        quick_snipe_btn = tk.Button(button_frame, text="Quick Snipe Token", command=self.quick_snipe_gui,
+                                   fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        quick_snipe_btn.grid(row=0, column=2, padx=10, pady=5)
+        
+        history_btn = tk.Button(button_frame, text="View Sniper History", command=self.view_sniper_history_gui,
+                               fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        history_btn.grid(row=1, column=0, padx=10, pady=5)
+        
+        settings_btn = tk.Button(button_frame, text="Sniper Settings", command=self.sniper_settings_gui,
+                                fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        settings_btn.grid(row=1, column=1, padx=10, pady=5)
+        
+        stop_btn = tk.Button(button_frame, text="Stop Monitoring", command=self.stop_monitoring_gui,
+                            fg=self.error_color, bg=self.bg_color, font=('Courier', 10, 'bold'), width=20)
+        stop_btn.grid(row=1, column=2, padx=10, pady=5)
+        
+        # Status display
+        status_frame = tk.Frame(sniper_frame, bg=self.bg_color)
+        status_frame.pack(fill=tk.BOTH, expand=True, pady=20)
+        
+        status_label = tk.Label(status_frame, text="Status: Ready", fg=self.info_color, bg=self.bg_color, font=('Courier', 10))
+        status_label.pack(anchor=tk.W)
+        
+        # Log display
+        log_frame = tk.Frame(status_frame, bg=self.bg_color)
+        log_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        
+        log_label = tk.Label(log_frame, text="Sniper Log:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'))
+        log_label.pack(anchor=tk.W)
+        
+        log_text = scrolledtext.ScrolledText(log_frame, height=15, bg=self.bg_color, fg=self.fg_color, 
+                                           font=('Courier', 9), insertbackground=self.fg_color)
+        log_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Store references
+        self.sniper_status_label = status_label
+        self.sniper_log_text = log_text
+        self.monitoring_active = False
+        
+        return sniper_frame
+    
+    def setup_sniper_bot_gui(self):
+        """Setup sniper bot with GUI"""
+        setup_window = tk.Toplevel(self.root)
+        setup_window.title("Sniper Bot Setup")
+        setup_window.geometry("500x600")
+        setup_window.configure(bg=self.bg_color)
+        
+        # Wallet details
+        wallet_frame = tk.Frame(setup_window, bg=self.bg_color)
+        wallet_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        tk.Label(wallet_frame, text="Wallet Address:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        wallet_address_var = tk.StringVar()
+        wallet_entry = tk.Entry(wallet_frame, textvariable=wallet_address_var, bg=self.bg_color, fg=self.fg_color, 
+                               font=('Courier', 10), width=50)
+        wallet_entry.pack(fill=tk.X, pady=(5, 10))
+        
+        tk.Label(wallet_frame, text="Private Key:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        private_key_var = tk.StringVar()
+        private_key_entry = tk.Entry(wallet_frame, textvariable=private_key_var, bg=self.bg_color, fg=self.fg_color, 
+                                    font=('Courier', 10), width=50, show="*")
+        private_key_entry.pack(fill=tk.X, pady=(5, 10))
+        
+        # Sniper settings
+        settings_frame = tk.Frame(setup_window, bg=self.bg_color)
+        settings_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        tk.Label(settings_frame, text="Max ETH per snipe:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        max_eth_var = tk.StringVar(value="0.1")
+        max_eth_entry = tk.Entry(settings_frame, textvariable=max_eth_var, bg=self.bg_color, fg=self.fg_color, 
+                                font=('Courier', 10), width=20)
+        max_eth_entry.pack(anchor=tk.W, pady=(5, 10))
+        
+        tk.Label(settings_frame, text="Gas price (Gwei):", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        gas_price_var = tk.StringVar(value="30")
+        gas_price_entry = tk.Entry(settings_frame, textvariable=gas_price_var, bg=self.bg_color, fg=self.fg_color, 
+                                  font=('Courier', 10), width=20)
+        gas_price_entry.pack(anchor=tk.W, pady=(5, 10))
+        
+        tk.Label(settings_frame, text="Slippage tolerance (%):", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W)
+        slippage_var = tk.StringVar(value="10")
+        slippage_entry = tk.Entry(settings_frame, textvariable=slippage_var, bg=self.bg_color, fg=self.fg_color, 
+                                 font=('Courier', 10), width=20)
+        slippage_entry.pack(anchor=tk.W, pady=(5, 10))
+        
+        auto_approve_var = tk.BooleanVar(value=True)
+        auto_approve_check = tk.Checkbutton(settings_frame, text="Auto-approve tokens", variable=auto_approve_var,
+                                           fg=self.fg_color, bg=self.bg_color, font=('Courier', 10),
+                                           selectcolor=self.bg_color, activebackground=self.bg_color, activeforeground=self.fg_color)
+        auto_approve_check.pack(anchor=tk.W, pady=(5, 10))
+        
+        def save_config():
+            try:
+                config = {
+                    'wallet_address': wallet_address_var.get().strip(),
+                    'private_key': private_key_var.get().strip(),
+                    'max_eth_per_snipe': float(max_eth_var.get()),
+                    'gas_price_gwei': float(gas_price_var.get()),
+                    'slippage_percent': float(slippage_var.get()),
+                    'auto_approve': auto_approve_var.get(),
+                    'enabled': True,
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                # Validate inputs
+                if not self.web3.is_address(config['wallet_address']):
+                    messagebox.showerror("Error", "Invalid wallet address")
+                    return
+                
+                if not config['private_key']:
+                    messagebox.showerror("Error", "Private key is required")
+                    return
+                
+                # Save configuration
+                with open('sniper_config.json', 'w') as f:
+                    json.dump(config, f, indent=2)
+                
+                messagebox.showinfo("Success", "Sniper bot configured successfully!")
+                setup_window.destroy()
+                
+            except ValueError as e:
+                messagebox.showerror("Error", f"Invalid input: {str(e)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Configuration failed: {str(e)}")
+        
+        # Save button
+        save_btn = tk.Button(setup_window, text="Save Configuration", command=save_config,
+                            fg=self.fg_color, bg=self.bg_color, font=('Courier', 12, 'bold'))
+        save_btn.pack(pady=20)
+    
+    def start_monitoring_gui(self):
+        """Start monitoring for new tokens with GUI"""
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "No sniper configuration found. Setup sniper bot first.")
+            return
+        
+        if not config.get('enabled', False):
+            messagebox.showerror("Error", "Sniper bot is disabled")
+            return
+        
+        self.monitoring_active = True
+        self.sniper_status_label.config(text="Status: Monitoring Active")
+        self.add_sniper_log("Monitoring started for new token listings...")
+        
+        # Start monitoring thread
+        self.monitoring_thread = threading.Thread(target=self.monitor_new_listings_gui, daemon=True)
+        self.monitoring_thread.start()
+    
+    def monitor_new_listings_gui(self):
+        """Monitor for new listings in background thread"""
+        while self.monitoring_active:
+            try:
+                # Simulate finding new tokens
+                new_tokens = self.scan_for_new_tokens_gui()
+                
+                for token in new_tokens:
+                    self.add_sniper_log(f"🔥 NEW TOKEN: {token['name']} ({token['symbol']})")
+                    self.add_sniper_log(f"   Contract: {token['address']}")
+                    self.add_sniper_log(f"   Liquidity: {token['liquidity']} ETH")
+                    
+                    # Auto-snipe if conditions are met
+                    if self.should_auto_snipe_gui(token):
+                        self.add_sniper_log("   Auto-sniping...")
+                        success = self.execute_snipe_gui(token)
+                        if success:
+                            self.add_sniper_log("   ✅ Snipe successful!")
+                        else:
+                            self.add_sniper_log("   ❌ Snipe failed!")
+                    else:
+                        self.add_sniper_log("   Token doesn't meet auto-snipe criteria")
+                
+                time.sleep(5)  # Check every 5 seconds
+                
+            except Exception as e:
+                self.add_sniper_log(f"Error in monitoring: {str(e)}")
+                time.sleep(10)
+    
+    def scan_for_new_tokens_gui(self):
+        """Scan for new tokens (GUI version)"""
+        # Simulated new tokens for demo
+        new_tokens = []
+        
+        # Random chance to find a "new" token
+        if random.random() < 0.05:  # 5% chance
+            token = {
+                'address': f"0x{random.randint(1000000000000000000000000000000000000000, 9999999999999999999999999999999999999999):040x}",
+                'name': f"Token{random.randint(1000, 9999)}",
+                'symbol': f"TKN{random.randint(100, 999)}",
+                'liquidity': random.uniform(1, 50),
+                'created_at': datetime.now().isoformat()
+            }
+            new_tokens.append(token)
+        
+        return new_tokens
+    
+    def should_auto_snipe_gui(self, token):
+        """Determine if token should be auto-sniped (GUI version)"""
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            return False
+        
+        # Basic criteria
+        min_liquidity = 5
+        max_liquidity = 100
+        liquidity = token.get('liquidity', 0)
+        
+        if liquidity < min_liquidity or liquidity > max_liquidity:
+            return False
+        
+        # Check wallet balance
+        wallet_balance = self.get_wallet_balance_gui(config['wallet_address'])
+        if wallet_balance < config['max_eth_per_snipe']:
+            return False
+        
+        return True
+    
+    def get_wallet_balance_gui(self, wallet_address):
+        """Get wallet balance (GUI version)"""
+        try:
+            balance_wei = self.web3.eth.get_balance(wallet_address)
+            balance_eth = self.web3.from_wei(balance_wei, 'ether')
+            return float(balance_eth)
+        except Exception as e:
+            self.add_sniper_log(f"Error getting wallet balance: {e}")
+            return 0.0
+    
+    def execute_snipe_gui(self, token):
+        """Execute snipe transaction (GUI version)"""
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+            
+            eth_amount = config['max_eth_per_snipe']
+            wallet_address = config['wallet_address']
+            private_key = config['private_key']
+            contract_address = token['address']
+            
+            # Execute the snipe
+            success, message = self.execute_real_uniswap_buy_gui(
+                contract_address, eth_amount, wallet_address, private_key
+            )
+            
+            if success:
+                # Log successful snipe
+                snipe_record = {
+                    'token_address': contract_address,
+                    'token_name': token['name'],
+                    'token_symbol': token['symbol'],
+                    'eth_amount': eth_amount,
+                    'timestamp': datetime.now().isoformat(),
+                    'status': 'success',
+                    'tx_hash': message
+                }
+                
+                self.log_snipe_gui(snipe_record)
+            
+            return success
+            
+        except Exception as e:
+            self.add_sniper_log(f"Error executing snipe: {e}")
+            return False
+    
+    def execute_real_uniswap_buy_gui(self, contract_address, eth_amount, wallet_address, private_key):
+        """Execute real Uniswap buy (GUI version)"""
+        try:
+            if not self.web3.is_address(contract_address):
+                return False, "Invalid token contract address"
+            
+            if not self.web3.is_address(wallet_address):
+                return False, "Invalid wallet address"
+            
+            # Setup transaction parameters
+            WETH = self.web3.to_checksum_address('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+            token_addr = self.web3.to_checksum_address(contract_address)
+            path = [WETH, token_addr]
+            deadline = int(self.web3.eth.get_block('latest')['timestamp']) + 600
+            min_tokens = 1
+            
+            # Build transaction
+            tx = self.uniswap_router.functions.swapExactETHForTokensSupportingFeeOnTransferTokens(
+                min_tokens, path, wallet_address, deadline
+            ).build_transaction({
+                'from': wallet_address,
+                'value': self.web3.to_wei(eth_amount, 'ether'),
+                'gas': 300000,
+                'gasPrice': self.web3.to_wei('30', 'gwei'),
+                'nonce': self.web3.eth.get_transaction_count(wallet_address)
+            })
+            
+            # Sign and send transaction
+            signed = self.web3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
+            
+            return True, f"Transaction sent: {self.web3.to_hex(tx_hash)}"
+            
+        except Exception as e:
+            return False, f"Transaction failed: {str(e)}"
+    
+    def log_snipe_gui(self, snipe_record):
+        """Log snipe transaction (GUI version)"""
+        try:
+            with open('sniper_history.json', 'r') as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            history = []
+        
+        history.append(snipe_record)
+        
+        with open('sniper_history.json', 'w') as f:
+            json.dump(history, f, indent=2)
+    
+    def add_sniper_log(self, message):
+        """Add message to sniper log"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        log_message = f"[{timestamp}] {message}\n"
+        
+        # Update GUI in main thread
+        self.root.after(0, lambda: self.sniper_log_text.insert(tk.END, log_message))
+        self.root.after(0, lambda: self.sniper_log_text.see(tk.END))
+    
+    def stop_monitoring_gui(self):
+        """Stop monitoring"""
+        self.monitoring_active = False
+        self.sniper_status_label.config(text="Status: Monitoring Stopped")
+        self.add_sniper_log("Monitoring stopped")
+    
+    def quick_snipe_gui(self):
+        """Quick snipe token with GUI"""
+        # Create quick snipe window
+        snipe_window = tk.Toplevel(self.root)
+        snipe_window.title("Quick Token Snipe")
+        snipe_window.geometry("600x500")
+        snipe_window.configure(bg=self.bg_color)
+        
+        # Token contract input
+        tk.Label(snipe_window, text="Token Contract Address:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W, padx=20, pady=(20, 5))
+        contract_var = tk.StringVar()
+        contract_entry = tk.Entry(snipe_window, textvariable=contract_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=60)
+        contract_entry.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        # ETH amount input
+        tk.Label(snipe_window, text="ETH Amount to snipe:", fg=self.fg_color, bg=self.bg_color, font=('Courier', 10)).pack(anchor=tk.W, padx=20, pady=(0, 5))
+        amount_var = tk.StringVar(value="0.1")
+        amount_entry = tk.Entry(snipe_window, textvariable=amount_var, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10), width=20)
+        amount_entry.pack(anchor=tk.W, padx=20, pady=(0, 20))
+        
+        # Preview frame
+        preview_frame = tk.Frame(snipe_window, bg=self.bg_color)
+        preview_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        preview_label = tk.Label(preview_frame, text="Snipe Preview:", fg=self.accent_color, bg=self.bg_color, font=('Courier', 12, 'bold'))
+        preview_label.pack(anchor=tk.W)
+        
+        preview_text = scrolledtext.ScrolledText(preview_frame, height=10, bg=self.bg_color, fg=self.fg_color, font=('Courier', 9))
+        preview_text.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        
+        def preview_snipe():
+            contract = contract_var.get().strip()
+            amount = amount_var.get().strip()
+            
+            if not contract or not amount:
+                preview_text.delete(1.0, tk.END)
+                preview_text.insert(tk.END, "Please enter contract address and amount")
+                return
+            
+            try:
+                eth_amount = float(amount)
+            except ValueError:
+                preview_text.delete(1.0, tk.END)
+                preview_text.insert(tk.END, "Invalid ETH amount")
+                return
+            
+            # Get token info
+            token_info = self.get_token_info_gui(contract)
+            if not token_info:
+                preview_text.delete(1.0, tk.END)
+                preview_text.insert(tk.END, "Could not get token information")
+                return
+            
+            # Show preview
+            preview_text.delete(1.0, tk.END)
+            preview_text.insert(tk.END, f"Token: {token_info['name']} ({token_info['symbol']})\n")
+            preview_text.insert(tk.END, f"Contract: {contract}\n")
+            preview_text.insert(tk.END, f"Amount: {eth_amount} ETH\n")
+            preview_text.insert(tk.END, f"Estimated gas: 300,000\n")
+            preview_text.insert(tk.END, f"Gas price: 30 Gwei\n")
+            preview_text.insert(tk.END, f"Total cost: ~{eth_amount + 0.009} ETH\n\n")
+            preview_text.insert(tk.END, "⚠️  WARNING: This is a real transaction with real money! ⚠️")
+        
+        def execute_snipe():
+            contract = contract_var.get().strip()
+            amount = amount_var.get().strip()
+            
+            if not contract or not amount:
+                messagebox.showerror("Error", "Please enter contract address and amount")
+                return
+            
+            try:
+                eth_amount = float(amount)
+            except ValueError:
+                messagebox.showerror("Error", "Invalid ETH amount")
+                return
+            
+            # Load sniper config
+            try:
+                with open('sniper_config.json', 'r') as f:
+                    config = json.load(f)
+            except FileNotFoundError:
+                messagebox.showerror("Error", "No sniper configuration found")
+                return
+            
+            # Check wallet balance
+            wallet_balance = self.get_wallet_balance_gui(config['wallet_address'])
+            if wallet_balance < eth_amount:
+                messagebox.showerror("Error", f"Insufficient ETH balance. You have {wallet_balance:.6f} ETH")
+                return
+            
+            # Confirm transaction
+            confirm = messagebox.askyesno("Confirm Snipe", 
+                                        f"Execute snipe?\n\nToken: {contract}\nAmount: {eth_amount} ETH\n\nThis will cost real money!")
+            if not confirm:
+                return
+            
+            # Execute snipe
+            success = self.execute_snipe_gui({
+                'address': contract,
+                'name': 'Unknown Token',
+                'symbol': 'UNKNOWN'
+            })
+            
+            if success:
+                messagebox.showinfo("Success", "Snipe executed successfully!")
+            else:
+                messagebox.showerror("Error", "Snipe failed!")
+            
+            snipe_window.destroy()
+        
+        # Buttons
+        button_frame = tk.Frame(snipe_window, bg=self.bg_color)
+        button_frame.pack(pady=20)
+        
+        preview_btn = tk.Button(button_frame, text="Preview Snipe", command=preview_snipe,
+                               fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'))
+        preview_btn.pack(side=tk.LEFT, padx=10)
+        
+        execute_btn = tk.Button(button_frame, text="Execute Snipe", command=execute_snipe,
+                               fg=self.error_color, bg=self.bg_color, font=('Courier', 10, 'bold'))
+        execute_btn.pack(side=tk.LEFT, padx=10)
+    
+    def get_token_info_gui(self, contract_address):
+        """Get token information (GUI version)"""
+        try:
+            # Basic token info (in real implementation, this would query the blockchain)
+            return {
+                'name': f"Token_{contract_address[-6:]}",
+                'symbol': f"TKN_{contract_address[-4:]}",
+                'decimals': 18
+            }
+        except Exception as e:
+            return None
+    
+    def view_sniper_history_gui(self):
+        """View sniper history with GUI"""
+        history_window = tk.Toplevel(self.root)
+        history_window.title("Sniper History")
+        history_window.geometry("800x600")
+        history_window.configure(bg=self.bg_color)
+        
+        # History display
+        history_text = scrolledtext.ScrolledText(history_window, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        history_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        try:
+            with open('sniper_history.json', 'r') as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            history_text.insert(tk.END, "No sniper history found")
+            return
+        
+        if not history:
+            history_text.insert(tk.END, "No sniper transactions yet")
+            return
+        
+        # Display history
+        history_text.insert(tk.END, "Recent Sniper Transactions:\n\n")
+        for snipe in history[-20:]:  # Show last 20 snipes
+            timestamp = snipe.get('timestamp', 'Unknown')
+            token_name = snipe.get('token_name', 'Unknown')
+            token_symbol = snipe.get('token_symbol', 'Unknown')
+            eth_amount = snipe.get('eth_amount', 0)
+            status = snipe.get('status', 'Unknown')
+            tx_hash = snipe.get('tx_hash', 'Unknown')
+            
+            history_text.insert(tk.END, f"Time: {timestamp}\n")
+            history_text.insert(tk.END, f"Token: {token_name} ({token_symbol})\n")
+            history_text.insert(tk.END, f"Amount: {eth_amount} ETH\n")
+            history_text.insert(tk.END, f"Status: {status}\n")
+            history_text.insert(tk.END, f"TX: {tx_hash}\n")
+            history_text.insert(tk.END, "-" * 50 + "\n\n")
+    
+    def sniper_settings_gui(self):
+        """Sniper settings with GUI"""
+        settings_window = tk.Toplevel(self.root)
+        settings_window.title("Sniper Settings")
+        settings_window.geometry("400x500")
+        settings_window.configure(bg=self.bg_color)
+        
+        try:
+            with open('sniper_config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "No sniper configuration found")
+            settings_window.destroy()
+            return
+        
+        # Current settings display
+        tk.Label(settings_window, text="Current Settings:", fg=self.accent_color, bg=self.bg_color, font=('Courier', 12, 'bold')).pack(pady=20)
+        
+        settings_text = scrolledtext.ScrolledText(settings_window, height=15, bg=self.bg_color, fg=self.fg_color, font=('Courier', 10))
+        settings_text.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        settings_text.insert(tk.END, f"Wallet: {config.get('wallet_address', 'Not set')}\n")
+        settings_text.insert(tk.END, f"Max ETH per snipe: {config.get('max_eth_per_snipe', 0)}\n")
+        settings_text.insert(tk.END, f"Gas price: {config.get('gas_price_gwei', 0)} Gwei\n")
+        settings_text.insert(tk.END, f"Slippage: {config.get('slippage_percent', 0)}%\n")
+        settings_text.insert(tk.END, f"Auto-approve: {config.get('auto_approve', False)}\n")
+        settings_text.insert(tk.END, f"Enabled: {config.get('enabled', False)}\n")
+        
+        # Enable/disable button
+        def toggle_enabled():
+            config['enabled'] = not config.get('enabled', False)
+            status = "enabled" if config['enabled'] else "disabled"
+            
+            with open('sniper_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            
+            messagebox.showinfo("Success", f"Sniper {status}")
+            settings_window.destroy()
+        
+        toggle_btn = tk.Button(settings_window, text="Toggle Enable/Disable", command=toggle_enabled,
+                              fg=self.fg_color, bg=self.bg_color, font=('Courier', 10, 'bold'))
+        toggle_btn.pack(pady=20)
+
     def update_market_display(self):
         self.market_text.delete(1.0, tk.END)
         header = f"{'SYMBOL':<8} {'PRICE':<12} {'CHANGE':<10} {'VOLUME':<12}\n"
@@ -1398,6 +1981,17 @@ class CryptoMarketplace:
         win.geometry("900x600")
         win.configure(bg=self.bg_color)
         self.create_market_tab(win)
+
+    def open_sniper_window(self):
+        """Open token sniper window"""
+        sniper_window = tk.Toplevel(self.root)
+        sniper_window.title("Token Sniper Bot")
+        sniper_window.geometry("1000x700")
+        sniper_window.configure(bg=self.bg_color)
+        
+        # Create sniper tab content
+        sniper_frame = self.create_sniper_tab(sniper_window)
+        sniper_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
 def get_uniswap_price(token_address, eth_amount):
     try:
