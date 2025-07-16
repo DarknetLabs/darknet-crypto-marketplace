@@ -4,14 +4,30 @@ A plug-and-play terminal-based cryptocurrency marketplace application with a dar
 
 ## 🚀 Quick Start
 
-### Windows Users
-1. Double-click `run_terminal.bat` to start the application
-2. Or run: `python terminal_main.py`
+### Step 1: Download the Project
+```bash
+git clone https://github.com/DarknetLabs/darknet-crypto-marketplace.git
+cd darknet-crypto-marketplace
+```
 
-### Linux/Mac Users
-1. Make the script executable: `chmod +x run_terminal.sh`
-2. Run: `./run_terminal.sh`
-3. Or run: `python3 terminal_main.py`
+### Step 2: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 3: Run the Application
+
+**Windows Users:**
+```bash
+python terminal_main.py
+```
+**OR double-click:** `run_terminal.bat`
+
+**Linux/Mac Users:**
+```bash
+python3 terminal_main.py
+```
+**OR:** `chmod +x run_terminal.sh && ./run_terminal.sh`
 
 ## 📋 Prerequisites
 
@@ -20,15 +36,39 @@ A plug-and-play terminal-based cryptocurrency marketplace application with a dar
 
 ## 🔧 Installation
 
-1. **Install Python dependencies:**
+### Prerequisites
+- Python 3.7 or higher
+- Git (for cloning the repository)
+- Internet connection for live market data
+
+### Complete Installation Steps
+
+1. **Clone the repository:**
    ```bash
-   pip install -r requirements_terminal.txt
+   git clone https://github.com/DarknetLabs/darknet-crypto-marketplace.git
+   cd darknet-crypto-marketplace
    ```
 
-2. **Run the application:**
+2. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the application:**
    ```bash
    python terminal_main.py
    ```
+
+### Alternative Download Methods
+
+**If you don't have Git:**
+1. Go to: `https://github.com/DarknetLabs/darknet-crypto-marketplace`
+2. Click the green **"Code"** button
+3. Click **"Download ZIP"**
+4. Extract the ZIP file
+5. Open terminal/command prompt in the extracted folder
+6. Run: `pip install -r requirements.txt`
+7. Run: `python terminal_main.py`
 
 ## 🎯 Features
 
@@ -79,6 +119,21 @@ The application starts with a main menu showing:
 - 24-hour price changes
 - Market cap leaders
 - Search for specific tokens
+
+### Chat Rooms
+- **Global Chat**: Connect with users worldwide
+- **40+ Specialized Rooms**: Bitcoin-Talk, Ethereum-Dev, DeFi-Trading, NFT-Collectors, etc.
+- **Real-time Messaging**: Instant message delivery
+- **Message History**: See recent messages when joining rooms
+- **Persistent Usernames**: Your username is saved locally
+- **Cross-platform Sync**: Messages sync with GUI version
+
+#### How to Chat:
+1. From main menu, select `[5] Chat Rooms`
+2. Enter your username (first time only)
+3. Select a room from the list
+4. Type messages and press Enter to send
+5. Type `exit` to leave the room
 
 ## 🎨 Terminal Colors
 
