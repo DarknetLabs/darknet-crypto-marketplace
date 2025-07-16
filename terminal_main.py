@@ -143,31 +143,31 @@ class TerminalCryptoMarketplace:
 
     def print_header(self):
         """Print the application header"""
-        print(f"{Colors.CYAN}{Colors.BOLD}")
+        print(f"{Colors.RED}{Colors.BOLD}")
         print("╔══════════════════════════════════════════════════════════════════════════════╗")
-        print("║                    DARKNET CRYPTO MARKETPLACE v2.1                           ║")
-        print("║                         SECURE • ANONYMOUS • DECENTRALIZED                    ║")
+        print("║                    🌑 DARKNET MARKETPLACE 🌑                                 ║")
+        print("║                    Welcome to the Underworld                                 ║")
         print("╚══════════════════════════════════════════════════════════════════════════════╝")
         print(f"{Colors.END}")
 
     def print_menu(self):
         """Print the main menu"""
-        print(f"\n{Colors.GREEN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
-        print(f"{Colors.GREEN}║                              MAIN MENU                                        ║{Colors.END}")
-        print(f"{Colors.GREEN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
-        print(f"\n{Colors.YELLOW}[1]{Colors.END} Dashboard & Portfolio")
-        print(f"{Colors.YELLOW}[2]{Colors.END} Trading Interface")
-        print(f"{Colors.YELLOW}[3]{Colors.END} Wallet Management")
-        print(f"{Colors.YELLOW}[4]{Colors.END} Live Market Data")
-        print(f"{Colors.YELLOW}[5]{Colors.END} Chat Rooms")
+        print(f"\n{Colors.RED}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+        print(f"{Colors.RED}║                              UNDERWORLD MENU                                   ║{Colors.END}")
+        print(f"{Colors.RED}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+        print(f"\n{Colors.YELLOW}[1]{Colors.END} Contraband Dashboard")
+        print(f"{Colors.YELLOW}[2]{Colors.END} Illicit Trading Interface")
+        print(f"{Colors.YELLOW}[3]{Colors.END} Anonymous Wallet Management")
+        print(f"{Colors.YELLOW}[4]{Colors.END} Underground Market Data")
+        print(f"{Colors.YELLOW}[5]{Colors.END} Secure Chat Rooms")
         print(f"{Colors.YELLOW}[6]{Colors.END} Transaction History")
-        print(f"{Colors.YELLOW}[7]{Colors.END} Settings")
-        print(f"{Colors.YELLOW}[8]{Colors.END} Uniswap Trading")
-        print(f"{Colors.YELLOW}[9]{Colors.END} Real Blockchain Trading")
+        print(f"{Colors.YELLOW}[7]{Colors.END} Security Settings")
+        print(f"{Colors.YELLOW}[8]{Colors.END} Dark Web Trading")
+        print(f"{Colors.YELLOW}[9]{Colors.END} Real Blockchain Operations")
         print(f"{Colors.YELLOW}[10]{Colors.END} Token Sniping")
-        print(f"{Colors.YELLOW}[11]{Colors.END} Global Marketplace")
-        print(f"{Colors.YELLOW}[0]{Colors.END} Exit")
-        print(f"\n{Colors.CYAN}Balance: ${self.user_balance:,.2f}{Colors.END}")
+        print(f"{Colors.YELLOW}[11]{Colors.END} Global Black Market")
+        print(f"{Colors.YELLOW}[0]{Colors.END} Emergency Exit")
+        print(f"\n{Colors.RED}Balance: ${self.user_balance:,.2f}{Colors.END}")
 
     def get_user_input(self, prompt="Enter your choice: "):
         """Get user input with colored prompt"""
@@ -179,14 +179,14 @@ class TerminalCryptoMarketplace:
             self.clear_screen()
             self.print_header()
             
-            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
-            print(f"{Colors.CYAN}║                              DASHBOARD                                        ║{Colors.END}")
-            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            print(f"\n{Colors.RED}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.RED}║                              CONTRABAND DASHBOARD                             ║{Colors.END}")
+            print(f"{Colors.RED}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
             
             # Portfolio summary
             total_value = self.user_balance
-            print(f"\n{Colors.GREEN}PORTFOLIO SUMMARY:{Colors.END}")
-            print(f"{Colors.WHITE}Cash Balance: ${self.user_balance:,.2f}{Colors.END}")
+            print(f"\n{Colors.RED}ILLICIT ASSETS SUMMARY:{Colors.END}")
+            print(f"{Colors.WHITE}Anonymous Balance: ${self.user_balance:,.2f}{Colors.END}")
             
             if self.user_portfolio:
                 print(f"\n{Colors.YELLOW}HOLDINGS:{Colors.END}")
