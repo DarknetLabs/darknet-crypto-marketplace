@@ -21,6 +21,49 @@ from crypto_rooms import CryptoRooms
 from live_market_data import LiveMarketData
 from wallet_manager import WalletManager
 
+# Uniswap V2 Router configuration
+UNISWAP_V2_ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
+UNISWAP_V2_ROUTER_ABI = [
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"}
+        ],
+        "name": "getAmountsOut",
+        "outputs": [
+            {"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+        ],
+        "name": "swapExactETHForTokensSupportingFeeOnTransferTokens",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+            {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+            {"internalType": "address[]", "name": "path", "type": "address[]"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+        ],
+        "name": "swapExactTokensForETHSupportingFeeOnTransferTokens",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]
+INFURA_URL = 'https://mainnet.infura.io/v3/8b3e1e2e2e4e2e8e2e2e2e2e2e2e2e2e'  # Replace with your Infura key
+
 # ANSI color codes for terminal
 class Colors:
     GREEN = '\033[92m'
@@ -40,6 +83,23 @@ class TerminalCryptoMarketplace:
         self.user_portfolio = {}
         self.transaction_history = []
         self.token_cost_basis = {}
+        
+        # Initialize Web3 for real blockchain trading
+        self.web3 = Web3(Web3.HTTPProvider(INFURA_URL))
+        self.uniswap_router = self.web3.eth.contract(
+            address=UNISWAP_V2_ROUTER_ADDRESS, 
+            abi=UNISWAP_V2_ROUTER_ABI
+        )
+        
+        # Fetch Uniswap token list
+        self.uniswap_tokens = []
+        try:
+            resp = requests.get('https://tokens.uniswap.org/')
+            if resp.status_code == 200:
+                data = resp.json()
+                self.uniswap_tokens = data.get('tokens', [])
+        except Exception as e:
+            self.uniswap_tokens = []
         
         # Initialize components
         self.live_market = LiveMarketData()
@@ -99,6 +159,7 @@ class TerminalCryptoMarketplace:
         print(f"{Colors.YELLOW}[6]{Colors.END} Transaction History")
         print(f"{Colors.YELLOW}[7]{Colors.END} Settings")
         print(f"{Colors.YELLOW}[8]{Colors.END} Uniswap Trading")
+        print(f"{Colors.YELLOW}[9]{Colors.END} Real Blockchain Trading")
         print(f"{Colors.YELLOW}[0]{Colors.END} Exit")
         print(f"\n{Colors.CYAN}Balance: ${self.user_balance:,.2f}{Colors.END}")
 
@@ -1137,6 +1198,8 @@ class TerminalCryptoMarketplace:
                     self.settings_screen()
                 elif choice == '8':
                     self.uniswap_screen()
+                elif choice == '9':
+                    self.real_trading_screen()
                 else:
                     print(f"{Colors.RED}Invalid choice. Please try again.{Colors.END}")
                     time.sleep(1)
@@ -1535,6 +1598,285 @@ class TerminalCryptoMarketplace:
                 break
             elif choice == '1':
                 continue
+
+    def execute_real_uniswap_buy(self, contract_address, eth_amount, wallet_address, private_key):
+        """Execute real Uniswap buy transaction on blockchain"""
+        try:
+            if not self.web3.is_address(contract_address):
+                return False, "Invalid token contract address"
+            
+            if not self.web3.is_address(wallet_address):
+                return False, "Invalid wallet address"
+            
+            # Setup transaction parameters
+            WETH = self.web3.to_checksum_address('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+            token_addr = self.web3.to_checksum_address(contract_address)
+            path = [WETH, token_addr]
+            deadline = int(self.web3.eth.get_block('latest')['timestamp']) + 600
+            min_tokens = 1  # For demo, set to 1. For production, calculate with slippage.
+            
+            # Build transaction
+            tx = self.uniswap_router.functions.swapExactETHForTokensSupportingFeeOnTransferTokens(
+                min_tokens, path, wallet_address, deadline
+            ).build_transaction({
+                'from': wallet_address,
+                'value': self.web3.to_wei(eth_amount, 'ether'),
+                'gas': 300000,
+                'gasPrice': self.web3.to_wei('30', 'gwei'),
+                'nonce': self.web3.eth.get_transaction_count(wallet_address)
+            })
+            
+            # Sign and send transaction
+            signed = self.web3.eth.account.sign_transaction(tx, private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
+            
+            return True, f"Transaction sent: {self.web3.to_hex(tx_hash)}"
+            
+        except Exception as e:
+            return False, f"Transaction failed: {str(e)}"
+    
+    def execute_real_uniswap_sell(self, contract_address, token_amount, wallet_address, private_key):
+        """Execute real Uniswap sell transaction on blockchain"""
+        try:
+            if not self.web3.is_address(contract_address):
+                return False, "Invalid token contract address"
+            
+            if not self.web3.is_address(wallet_address):
+                return False, "Invalid wallet address"
+            
+            # Setup transaction parameters
+            WETH = self.web3.to_checksum_address('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+            token_addr = self.web3.to_checksum_address(contract_address)
+            path = [token_addr, WETH]
+            deadline = int(self.web3.eth.get_block('latest')['timestamp']) + 600
+            min_eth = 1  # For demo, set to 1. For production, calculate with slippage.
+            
+            # Get token contract for approval
+            token_abi = [{"inputs":[],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}]
+            token_contract = self.web3.eth.contract(address=token_addr, abi=token_abi)
+            amount_wei = self.web3.to_wei(token_amount, 'ether')
+            
+            # Approve token spending
+            approve_tx = token_contract.functions.approve(UNISWAP_V2_ROUTER_ADDRESS, amount_wei).build_transaction({
+                'from': wallet_address,
+                'gas': 60000,
+                'gasPrice': self.web3.to_wei('30', 'gwei'),
+                'nonce': self.web3.eth.get_transaction_count(wallet_address)
+            })
+            signed_approve = self.web3.eth.account.sign_transaction(approve_tx, private_key)
+            approve_hash = self.web3.eth.send_raw_transaction(signed_approve.rawTransaction)
+            self.web3.eth.wait_for_transaction_receipt(approve_hash)
+            
+            # Execute swap
+            swap_tx = self.uniswap_router.functions.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                amount_wei, min_eth, path, wallet_address, deadline
+            ).build_transaction({
+                'from': wallet_address,
+                'gas': 300000,
+                'gasPrice': self.web3.to_wei('30', 'gwei'),
+                'nonce': self.web3.eth.get_transaction_count(wallet_address)
+            })
+            signed_swap = self.web3.eth.account.sign_transaction(swap_tx, private_key)
+            swap_hash = self.web3.eth.send_raw_transaction(signed_swap.rawTransaction)
+            
+            return True, f"Transaction sent: {self.web3.to_hex(swap_hash)}"
+            
+        except Exception as e:
+            return False, f"Transaction failed: {str(e)}"
+    
+    def get_wallet_balance(self, wallet_address):
+        """Get real ETH balance from blockchain"""
+        try:
+            balance_wei = self.web3.eth.get_balance(wallet_address)
+            balance_eth = self.web3.from_wei(balance_wei, 'ether')
+            return float(balance_eth)
+        except Exception as e:
+            print(f"Error getting wallet balance: {e}")
+            return 0.0
+    
+    def real_trading_screen(self):
+        """Display real blockchain trading interface"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n{Colors.CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.END}")
+            print(f"{Colors.CYAN}║                           REAL BLOCKCHAIN TRADING                            ║{Colors.END}")
+            print(f"{Colors.CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.END}")
+            
+            print(f"\n{Colors.RED}⚠️  WARNING: This is REAL trading with REAL money! ⚠️{Colors.END}")
+            print(f"{Colors.WHITE}Make sure you have a wallet with ETH and understand the risks.{Colors.END}")
+            
+            print(f"\n{Colors.GREEN}[1]{Colors.END} Buy Token with ETH (Real)")
+            print(f"{Colors.GREEN}[2]{Colors.END} Sell Token for ETH (Real)")
+            print(f"{Colors.GREEN}[3]{Colors.END} Check Wallet Balance")
+            print(f"{Colors.GREEN}[4]{Colors.END} View Transaction History")
+            print(f"{Colors.GREEN}[0]{Colors.END} Back to Main Menu")
+            
+            choice = self.get_user_input()
+            
+            if choice == '0':
+                break
+            elif choice == '1':
+                self.real_buy_token()
+            elif choice == '2':
+                self.real_sell_token()
+            elif choice == '3':
+                self.check_real_balance()
+            elif choice == '4':
+                self.view_real_history()
+    
+    def real_buy_token(self):
+        """Real token buying with wallet integration"""
+        print(f"\n{Colors.YELLOW}REAL TOKEN BUYING{Colors.END}")
+        print(f"{Colors.WHITE}Enter your wallet details:{Colors.END}")
+        
+        wallet_address = self.get_user_input("Wallet Address: ").strip()
+        private_key = self.get_user_input("Private Key: ").strip()
+        contract_address = self.get_user_input("Token Contract Address: ").strip()
+        
+        try:
+            eth_amount = float(self.get_user_input("ETH Amount to spend: "))
+        except ValueError:
+            print(f"{Colors.RED}Invalid ETH amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Check wallet balance
+        balance = self.get_wallet_balance(wallet_address)
+        if balance < eth_amount:
+            print(f"{Colors.RED}Insufficient ETH balance. You have {balance:.6f} ETH{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.YELLOW}Confirming transaction...{Colors.END}")
+        print(f"Buying token: {contract_address}")
+        print(f"Spending: {eth_amount} ETH")
+        print(f"From wallet: {wallet_address}")
+        
+        confirm = self.get_user_input("Type 'CONFIRM' to proceed: ")
+        if confirm != 'CONFIRM':
+            print(f"{Colors.YELLOW}Transaction cancelled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute real transaction
+        success, message = self.execute_real_uniswap_buy(contract_address, eth_amount, wallet_address, private_key)
+        
+        if success:
+            print(f"{Colors.GREEN}✅ Transaction successful!{Colors.END}")
+            print(f"{Colors.WHITE}{message}{Colors.END}")
+        else:
+            print(f"{Colors.RED}❌ Transaction failed!{Colors.END}")
+            print(f"{Colors.WHITE}{message}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def real_sell_token(self):
+        """Real token selling with wallet integration"""
+        print(f"\n{Colors.YELLOW}REAL TOKEN SELLING{Colors.END}")
+        print(f"{Colors.WHITE}Enter your wallet details:{Colors.END}")
+        
+        wallet_address = self.get_user_input("Wallet Address: ").strip()
+        private_key = self.get_user_input("Private Key: ").strip()
+        contract_address = self.get_user_input("Token Contract Address: ").strip()
+        
+        try:
+            token_amount = float(self.get_user_input("Token Amount to sell: "))
+        except ValueError:
+            print(f"{Colors.RED}Invalid token amount{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        print(f"\n{Colors.YELLOW}Confirming transaction...{Colors.END}")
+        print(f"Selling token: {contract_address}")
+        print(f"Amount: {token_amount} tokens")
+        print(f"From wallet: {wallet_address}")
+        
+        confirm = self.get_user_input("Type 'CONFIRM' to proceed: ")
+        if confirm != 'CONFIRM':
+            print(f"{Colors.YELLOW}Transaction cancelled{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        # Execute real transaction
+        success, message = self.execute_real_uniswap_sell(contract_address, token_amount, wallet_address, private_key)
+        
+        if success:
+            print(f"{Colors.GREEN}✅ Transaction successful!{Colors.END}")
+            print(f"{Colors.WHITE}{message}{Colors.END}")
+        else:
+            print(f"{Colors.RED}❌ Transaction failed!{Colors.END}")
+            print(f"{Colors.WHITE}{message}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def check_real_balance(self):
+        """Check real wallet balance on blockchain"""
+        print(f"\n{Colors.YELLOW}CHECK WALLET BALANCE{Colors.END}")
+        
+        wallet_address = self.get_user_input("Wallet Address: ").strip()
+        
+        if not self.web3.is_address(wallet_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        balance = self.get_wallet_balance(wallet_address)
+        eth_price = self.live_market.get_price('ETH') or 3200
+        
+        print(f"\n{Colors.GREEN}Wallet Balance:{Colors.END}")
+        print(f"{Colors.WHITE}ETH: {balance:.6f}{Colors.END}")
+        print(f"{Colors.WHITE}USD Value: ${balance * eth_price:,.2f}{Colors.END}")
+        
+        input("Press Enter to continue...")
+    
+    def view_real_history(self):
+        """View real transaction history from blockchain"""
+        print(f"\n{Colors.YELLOW}BLOCKCHAIN TRANSACTION HISTORY{Colors.END}")
+        
+        wallet_address = self.get_user_input("Wallet Address: ").strip()
+        
+        if not self.web3.is_address(wallet_address):
+            print(f"{Colors.RED}Invalid wallet address{Colors.END}")
+            input("Press Enter to continue...")
+            return
+        
+        try:
+            # Get recent transactions from Etherscan API
+            api_url = f"https://api.etherscan.io/api"
+            params = {
+                'module': 'account',
+                'action': 'txlist',
+                'address': wallet_address,
+                'startblock': 0,
+                'endblock': 99999999,
+                'sort': 'desc',
+                'apikey': 'YourApiKeyToken'  # Replace with actual API key
+            }
+            
+            response = requests.get(api_url, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data['status'] == '1':
+                    transactions = data['result'][:10]  # Show last 10 transactions
+                    
+                    print(f"\n{Colors.GREEN}Recent Transactions:{Colors.END}")
+                    for tx in transactions:
+                        tx_hash = tx['hash']
+                        value_eth = float(tx['value']) / 10**18
+                        timestamp = datetime.fromtimestamp(int(tx['timeStamp'])).strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        print(f"{Colors.WHITE}{timestamp} | {tx_hash[:10]}... | {value_eth:.6f} ETH{Colors.END}")
+                else:
+                    print(f"{Colors.RED}No transactions found{Colors.END}")
+            else:
+                print(f"{Colors.RED}Error fetching transactions{Colors.END}")
+                
+        except Exception as e:
+            print(f"{Colors.RED}Error: {str(e)}{Colors.END}")
+        
+        input("Press Enter to continue...")
 
 def main():
     """Main entry point"""
